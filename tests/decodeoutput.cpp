@@ -24,7 +24,7 @@
 #include "vaapi/VaapiUtils.h"
 
 #if __ENABLE_MD5__
-#include <openssl/md5.h>
+#include <bsd/md5.h>
 #endif
 
 #ifdef __ENABLE_X11__
@@ -382,7 +382,7 @@ bool DecodeOutputMD5::setVideoSize(uint32_t width, uint32_t height)
             //ERROR("fail to open input file: %s", name.c_str());
             return false;
         }
-        MD5_Init(&m_fileMD5);
+        MD5Init(&m_fileMD5);
         return true;
     }
     return DecodeOutputFile::setVideoSize(width, height);
@@ -393,7 +393,7 @@ std::string DecodeOutputMD5::writeToFile(MD5_CTX& t_ctx)
     char temp[4];
     uint8_t result[16] = { 0 };
     std::string strMD5;
-    MD5_Final(result, &t_ctx);
+    MD5Final(result, &t_ctx);
     for(uint32_t i = 0; i < 16; i++) {
         memset(temp, 0, sizeof(temp));
         snprintf(temp, sizeof(temp), "%02x", (uint32_t)result[i]);
@@ -422,11 +422,11 @@ bool DecodeOutputMD5::output(const SharedPtr<VideoFrame>& frame)
         return false;
 
     MD5_CTX frameMD5;
-    MD5_Init(&frameMD5);
-    MD5_Update(&frameMD5, &m_data[0], m_data.size());
+    MD5Init(&frameMD5);
+    MD5Update(&frameMD5, &m_data[0], m_data.size());
     writeToFile(frameMD5);
 
-    MD5_Update(&m_fileMD5, &m_data[0], m_data.size());
+    MD5Update(&m_fileMD5, &m_data[0], m_data.size());
 
     return true;
 }
