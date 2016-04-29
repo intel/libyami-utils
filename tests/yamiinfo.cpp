@@ -19,10 +19,10 @@
 #endif
 
 #include <iostream>
-#include "common/YamiVersion.h"
-#include "decoder/vaapidecoder_factory.h"
-#include "encoder/vaapiencoder_factory.h"
-#include "vpp/vaapipostprocess_factory.h"
+#include <YamiVersion.h>
+#include <vaapidecoder_factory.h>
+#include <vaapiencoder_factory.h>
+#include <vaapipostprocess_factory.h>
 
 using namespace YamiMediaCodec;
 
