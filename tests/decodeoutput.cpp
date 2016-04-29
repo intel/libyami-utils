@@ -21,7 +21,7 @@
 #include "decodeoutput.h"
 #include "common/log.h"
 #include "common/utils.h"
-#include "vaapi/VaapiUtils.h"
+#include "VaapiUtils.h"
 
 #if __ENABLE_MD5__
 #include <bsd/md5.h>

@@ -27,8 +27,8 @@
  * but we have no choose before we make VaapiSurface more generic,
  * and rename it to Surface
  */
-#include "vaapi/vaapiptrs.h"
-#include "vaapi/VaapiSurface.h"
+#include "vaapiptrs.h"
+#include "VaapiSurface.h"
 #include <vector>
 #include <VideoCommonDefs.h>
 
