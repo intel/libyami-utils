@@ -17,9 +17,9 @@
 #define condition_h
 
 #include "NonCopyable.h"
-#include "interface/VideoCommonDefs.h"
-
 #include "lock.h"
+
+#include <VideoCommonDefs.h>
 
 namespace YamiMediaCodec{
 

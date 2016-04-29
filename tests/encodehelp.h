@@ -16,8 +16,8 @@
 
 #ifndef __ENCODE_HELP__
 #define __ENCODE_HELP__
-#include "interface/VideoEncoderDefs.h"
 #include <getopt.h>
+#include <VideoEncoderDefs.h>
 
 static int idrInterval = 0;
 static int intraPeriod = 30;

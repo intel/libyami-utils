@@ -20,7 +20,6 @@
 #include "decodehelp.h"
 
 #include "common/utils.h"
-#include "interface/VideoCommonDefs.h"
 
 #include <ctype.h>
 #include <limits.h>
@@ -28,6 +27,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <VideoCommonDefs.h>
 
 using namespace YamiMediaCodec;
 

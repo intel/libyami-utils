@@ -39,7 +39,7 @@
 #else
 #include "./egl/gles2_help.h"
 #endif
-#include "interface/VideoCommonDefs.h"
+#include <VideoCommonDefs.h>
 
 #ifndef V4L2_EVENT_RESOLUTION_CHANGE
     #define V4L2_EVENT_RESOLUTION_CHANGE 5

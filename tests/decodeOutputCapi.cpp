@@ -19,8 +19,9 @@
 #endif
 
 #include "decodeOutputCapi.h"
-#include "interface/VideoDecoderInterface.h"
 #include "decodeoutput.h"
+
+#include <VideoDecoderInterface.h>
 
 using namespace YamiMediaCodec;
 

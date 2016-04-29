@@ -23,7 +23,6 @@
 
 #include "common/log.h"
 #include "common/videopool.h"
-#include "interface/VideoCommonDefs.h"
 /* we should not include vaapi surface here,
  * but we have no choose before we make VaapiSurface more generic,
  * and rename it to Surface
@@ -31,6 +30,7 @@
 #include "vaapi/vaapiptrs.h"
 #include "vaapi/VaapiSurface.h"
 #include <vector>
+#include <VideoCommonDefs.h>
 
 namespace YamiMediaCodec{
 

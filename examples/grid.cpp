@@ -22,7 +22,6 @@
 #include "common/utils.h"
 #include "tests/vppinputdecode.h"
 #include "tests/vppinputasync.h"
-#include "interface/VideoPostProcessHost.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -30,6 +29,7 @@
 #include <vector>
 #include <deque>
 #include <string.h>
+#include <VideoPostProcessHost.h>
 
 
 using namespace YamiMediaCodec;
