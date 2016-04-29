@@ -38,6 +38,9 @@ public:
     int32_t numRefFrames;
     int32_t idrInterval;
     string codec;
+    bool enableCabac;
+    bool enableDct8x8;
+    bool enableDeblockFilter;
 };
 
 class TranscodeParams
