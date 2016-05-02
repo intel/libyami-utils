@@ -20,7 +20,6 @@
 #include "vppinputoutput.h"
 #include "VideoPostProcessHost.h"
 #include "VideoCommonDefs.h"
-#include "common/common_def.h"
 
 #include <string>
 #include <cassert>
