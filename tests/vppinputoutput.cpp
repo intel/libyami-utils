@@ -25,7 +25,6 @@
 #include <deque>
 #include <va/va.h>
 #include "common/log.h"
-#include "common/utils.h"
 #include "common/lock.h"
 #include "vppinputoutput.h"
 #include "vppoutputencode.h"

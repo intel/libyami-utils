@@ -19,7 +19,6 @@
 
 
 #include "common/log.h"
-#include "common/utils.h"
 #include "tests/vppinputdecode.h"
 #include "tests/vppinputasync.h"
 #include <stdio.h>

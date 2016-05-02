@@ -21,7 +21,6 @@
 #include "font.h"
 #include "vppinputdecode.h"
 #include "common/log.h"
-#include "common/utils.h"
 #include "common/common_def.h"
 #include "VaapiUtils.h"
 #include "VideoDecoderHost.h"
@@ -32,7 +31,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <vector>
-#include "vpp/oclpostprocess_osd.h"
 #include <X11/Xlib.h>
 #include <va/va.h>
 #include <va/va_x11.h>

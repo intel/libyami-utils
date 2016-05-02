@@ -20,7 +20,6 @@
 
 #include "decodeoutput.h"
 #include "common/log.h"
-#include "common/utils.h"
 #include "VaapiUtils.h"
 
 #if __ENABLE_MD5__

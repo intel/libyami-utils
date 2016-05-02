@@ -23,7 +23,6 @@
 
 #include "vppinputdecode.h"
 #include "decodeoutput.h"
-#include "common/utils.h"
 #include "decodehelp.h"
 
 #include <stdio.h>

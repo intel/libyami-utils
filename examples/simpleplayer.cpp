@@ -19,7 +19,6 @@
 
 #include "decodeinput.h"
 #include "common/log.h"
-#include "common/utils.h"
 #include "VideoDecoderHost.h"
 #include <stdio.h>
 #include <stdlib.h>

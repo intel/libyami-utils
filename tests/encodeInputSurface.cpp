@@ -25,7 +25,6 @@
 #include <fcntl.h>
 #include <errno.h>
 #include "common/log.h"
-#include "common/utils.h"
 #include "encodeinput.h"
 
 #include <gui/SurfaceComposerClient.h>

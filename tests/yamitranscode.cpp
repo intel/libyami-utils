@@ -23,7 +23,6 @@
 #include "encodeinput.h"
 #include "tests/vppinputasync.h"
 #include "common/log.h"
-#include "common/utils.h"
 #include "VideoEncoderInterface.h"
 #include "VideoEncoderHost.h"
 #include "VideoPostProcessHost.h"
