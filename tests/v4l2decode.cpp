@@ -50,7 +50,7 @@
 #include <dlfcn.h>
 #include <fcntl.h>
 #else
-#include "v4l2/v4l2_wrapper.h"
+#include "common/v4l2_wrapper.h"
 #endif
 
 #ifdef ANDROID

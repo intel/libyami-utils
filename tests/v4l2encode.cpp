@@ -27,7 +27,7 @@
 
 #include "common/log.h"
 #include "common/utils.h"
-#include "v4l2/v4l2_wrapper.h"
+#include "common/v4l2_wrapper.h"
 #include "encodehelp.h"
 #include "encodeinput.h"
 

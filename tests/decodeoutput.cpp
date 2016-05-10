@@ -20,7 +20,7 @@
 
 #include "decodeoutput.h"
 #include "common/log.h"
-#include "VaapiUtils.h"
+#include "common/VaapiUtils.h"
 
 #if __ENABLE_MD5__
 #include <bsd/md5.h>

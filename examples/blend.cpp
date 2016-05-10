@@ -22,7 +22,7 @@
 #include "vppinputdecode.h"
 #include "common/log.h"
 #include "common/common_def.h"
-#include "VaapiUtils.h"
+#include "common/VaapiUtils.h"
 #include "VideoDecoderHost.h"
 #include "VideoPostProcessHost.h"
 #include <getopt.h>

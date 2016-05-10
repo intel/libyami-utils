@@ -20,19 +20,17 @@
 
 #include <iostream>
 #include <YamiVersion.h>
-#include <vaapidecoder_factory.h>
-#include <vaapiencoder_factory.h>
-#include <vaapipostprocess_factory.h>
+#include <VideoDecoderHost.h>
+#include <VideoEncoderHost.h>
+#include <VideoPostProcessHost.h>
 
 using namespace YamiMediaCodec;
 
-template<class Factory>
-void printFactoryInfo(const char* name)
+void printInfo(const char* name, const std::vector<std::string>& vector)
 {
     std::cout << std::endl << name << ":" << std::endl;
-    typename Factory::Keys keys(Factory::keys());
-    for (size_t i(0); i < keys.size(); ++i) {
-        std::cout << "\t" << keys[i] << std::endl;
+    for (size_t i(0); i < vector.size(); ++i) {
+        std::cout << "\t" << vector[i] << std::endl;
     }
 }
 
@@ -57,9 +55,9 @@ int main(int argc, const char** argv)
     std::cout<<std::endl;
     printApiVersion();
 
-    printFactoryInfo<VaapiDecoderFactory>("decoders");
-    printFactoryInfo<VaapiEncoderFactory>("encoders");
-    printFactoryInfo<VaapiPostProcessFactory>("post processors");
+    printInfo("decoders", getVideoDecoderMimeTypes());
+    printInfo("encoders", getVideoEncoderMimeTypes());
+    printInfo("post processors", getVideoPostProcessMimeTypes());
 
     return 0;
 }

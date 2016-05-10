@@ -20,7 +20,7 @@
 
 #include "encodeInputDecoder.h"
 #include "common/log.h"
-#include "VaapiUtils.h"
+#include "common/VaapiUtils.h"
 #include "assert.h"
 
 EncodeInputDecoder::EncodeInputDecoder(DecodeInput* input)

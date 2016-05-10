@@ -44,7 +44,7 @@ extern "C" {
 #include <xf86drmMode.h>
 #include <map>
 #include <sstream>
-#include "VaapiUtils.h"
+#include "common/VaapiUtils.h"
 #include "common/common_def.h"
 #include "common/condition.h"
 #include "common/lock.h"
