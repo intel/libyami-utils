@@ -48,6 +48,11 @@ LIBYAMIUTILS_LT_LDFLAGS="-version-number $LIBYAMIUTILS_LT_VERSION"
 AC_SUBST(LIBYAMIUTILS_LT_VERSION)
 AC_SUBST(LIBYAMIUTILS_LT_LDFLAGS)
 
+AC_ARG_ENABLE(tests-gles,
+    [AC_HELP_STRING([--enable-tests-gles],
+        [build with extra gles tests @<:@default=no@:>@])],
+    [], [enable_test_gles="no"])
+
 if test "$enable_tests_gles" = "yes"; then
     AC_DEFINE([__ENABLE_TESTS_GLES__], [1],
         [Defined to 1 if --enable-tests-gles="yes"])
@@ -214,6 +219,11 @@ fi
 if test "$enable_v4l2" = "yes"; then
     PKG_CHECK_MODULES([LIBV4L2], [libv4l2])
     PKG_CHECK_MODULES([LIBYAMIV4L2], [libyami_v4l2])
+fi
+
+if test "$enable_tests_gles" = "yes"; then
+    PKG_CHECK_MODULES([LIBEGL], [egl])
+    PKG_CHECK_MODULES([LIBGLES2], [glesv2])
 fi
 
 dnl drm_fourcc.h for dma_buf support
