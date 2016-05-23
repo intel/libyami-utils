@@ -1,5 +1,3 @@
-INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/tests
-
 bin_PROGRAMS =
 
 if ENABLE_X11
@@ -16,6 +14,7 @@ bin_PROGRAMS += grid
 endif
 
 AM_CFLAGS = \
+	-I$(top_srcdir)/tests \
 	$(LIBYAMI_CFLAGS) \
 	$(LIBVA_CFLAGS) \
 	$(NULL)

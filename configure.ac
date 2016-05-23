@@ -102,7 +102,7 @@ if test "$enable_v4l2" = "yes"; then
         [Defined to 1 if --enable-v4l2="yes"])
 fi
 AM_CONDITIONAL(ENABLE_V4L2,
-    [test "x$enable_v4l2" = "xyes" = "xyes"])
+    [test "x$enable_v4l2" = "xyes"])
 
 AC_ARG_ENABLE(capi,
     [AC_HELP_STRING([--enable-capi],
@@ -180,7 +180,6 @@ AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
-AC_PROG_RANLIB
 AC_PROG_LIBTOOL
 #LT_INIT
 # Checks for libraries.
