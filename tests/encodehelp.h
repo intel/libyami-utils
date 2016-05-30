@@ -216,7 +216,6 @@ void setEncoderParameters(VideoParamsCommon * encVideoParams)
 
     //encVideoParams->profile = VAProfileH264Main;
  //   encVideoParams->profile = VAProfileVP8Version0_3;
-    encVideoParams->rawFormat = RAW_FORMAT_YUV420;
 
 }
 #endif
