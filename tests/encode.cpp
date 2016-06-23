@@ -17,6 +17,8 @@
 #include "config.h"
 #endif
 
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -116,11 +118,12 @@ int main(int argc, char** argv)
         delete output;
         return -1;
     }
-
+    uint64_t i = 0;
     while (!input->isEOS())
     {
         memset(&inputBuffer, 0, sizeof(inputBuffer));
         if (input->getOneFrameInput(inputBuffer)) {
+            inputBuffer.timeStamp = i++;
             status = encoder->encode(&inputBuffer);
             ASSERT(status == ENCODE_SUCCESS);
             input->recycleOneFrameInput(inputBuffer);
@@ -136,8 +139,9 @@ int main(int argc, char** argv)
             status = encoder->getOutput(&outputBuffer, &MVBuffer, false);
 #endif
             if (status == ENCODE_SUCCESS
-                && !output->write(outputBuffer.data, outputBuffer.dataSize))
-                assert(0);
+                && output->write(outputBuffer.data, outputBuffer.dataSize)) {
+                DEBUG("timeStamp(PTS) : " "%" PRIu64 "\n", outputBuffer.timeStamp);
+            }
 #ifdef __BUILD_GET_MV__
             if (status == ENCODE_SUCCESS) {
                 fwrite(MVBuffer.data, MVBuffer.bufferSize, 1, MVFp);
@@ -159,8 +163,9 @@ int main(int argc, char** argv)
        status = encoder->getOutput(&outputBuffer, &MVBuffer, true);
 #endif
        if (status == ENCODE_SUCCESS
-           && !output->write(outputBuffer.data, outputBuffer.dataSize))
-           assert(0);
+           && output->write(outputBuffer.data, outputBuffer.dataSize)) {
+           DEBUG("timeStamp(PTS) : " "%" PRIu64 "\n", outputBuffer.timeStamp);
+       }
 #ifdef __BUILD_GET_MV__
         if (status == ENCODE_SUCCESS) {
             fwrite(MVBuffer.data, MVBuffer.bufferSize, 1, MVFp);
