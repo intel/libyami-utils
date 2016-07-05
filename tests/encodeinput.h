@@ -135,6 +135,7 @@ public:
     EncodeOutput();
     virtual ~EncodeOutput();
     static  EncodeOutput* create(const char* outputFileName, int width , int height);
+    static  EncodeOutput* create(const char* outputFileName, const char* codec,int width , int height);
     virtual bool write(void* data, int size);
     virtual const char* getMimeType() = 0;
 protected:

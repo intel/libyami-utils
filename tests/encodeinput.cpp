@@ -105,13 +105,17 @@ bool EncodeInputFile::init(const char* inputFileName, uint32_t fourcc, int width
     case VA_FOURCC('I', '4', '2', '0'):
     case VA_FOURCC_YV12:
         m_frameSize = m_width * m_height * 3 / 2;
-    break;
+        break;
+    case VA_FOURCC('I', '0', '1', '0'):
+    case VA_FOURCC_P010:
+        m_frameSize = m_width * m_height * 3;
+        break;
     case VA_FOURCC_YUY2:
         m_frameSize = m_width * m_height * 2;
-    break;
+        break;
     default:
         ASSERT(0);
-    break;
+        break;
     }
 
     m_fp = fopen(inputFileName, "r");
@@ -195,6 +199,39 @@ EncodeOutput* EncodeOutput::create(const char* outputFileName, int width , int h
     else if((strcasecmp(ext,"h265")==0) ||
                (strcasecmp(ext,"265")==0) ||
                (strcasecmp(ext,"hevc")==0)) {
+               output = new EncodeOutputHEVC();
+    }
+    else
+        return NULL;
+
+    if(!output->init(outputFileName, width, height)) {
+        delete output;
+        return NULL;
+    }
+    return output;
+}
+
+EncodeOutput* EncodeOutput::create(const char* outputFileName,const char* codec, int width , int height)
+{
+    EncodeOutput * output = NULL;
+    if(outputFileName==NULL)
+        return NULL;
+    if(codec==NULL)
+        return NULL;
+    if(strcasecmp(codec,"AVC")==0 ||
+        strcasecmp(codec,"avc")==0 ) {
+            output = new EncodeOutputH264();
+    }
+    else if((strcasecmp(codec,"VP8")==0) ||
+            (strcasecmp(codec,"vp8")==0)) {
+            output = new EncodeOutputVP8();
+    }
+    else if((strcasecmp(codec,"JPEG")==0) ||
+               (strcasecmp(codec,"jpeg")==0)) {
+               output = new EncodeStreamOutputJpeg();
+   }
+    else if((strcasecmp(codec,"HEVC")==0) ||
+               (strcasecmp(codec,"hevc")==0)) {
                output = new EncodeOutputHEVC();
     }
     else
