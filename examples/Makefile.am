@@ -90,3 +90,13 @@ grid_LDADD = $(VPP_INPUT_LIBS) $(LIBDRM_LIBS) -lpthread
 grid_LDFLAGS = $(VPP_INPUT_LDFLAGS) $(LIBYAMI_CFLAGS) $(LIBDRM_CFLAGS)
 grid_SOURCES = grid.cpp $(VPP_INPUT_SOURCES)
 endif
+
+#autotools distclean will try to do rm -rf ../tests/.deps which results
+#on failure, instead specify instructions here
+distclean:
+	-rm -rf ./.deps
+	-rm -rf ./.libs
+	-rm -rf ./*.o
+	-rm -rf Makefile
+	-test -z "" || rm -f
+	-rm -rf ${bin_PROGRAMS}
