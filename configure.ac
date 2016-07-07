@@ -216,6 +216,8 @@ if test "$enable_x11" = "yes"; then
 fi
 
 if test "$enable_v4l2" = "yes"; then
+    PKG_CHECK_MODULES([LIBEGL], [egl])
+    PKG_CHECK_MODULES([LIBGLES2], [glesv2])
     PKG_CHECK_MODULES([LIBV4L2], [libv4l2])
     PKG_CHECK_MODULES([LIBYAMIV4L2], [libyami_v4l2])
 fi
