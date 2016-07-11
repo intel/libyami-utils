@@ -23,7 +23,14 @@
 #include "common/VaapiUtils.h"
 
 #if __ENABLE_MD5__
+// including bsd/md5.h produces a warning with __bounded__ attribute,
+// libyami-utils chooses to ignore this particular warning by pushing the
+// current environment, ignoring attributes and then poping to restore the
+// environment.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wattributes"
 #include <bsd/md5.h>
+#pragma GCC diagnostic pop
 #endif
 
 #ifdef __ENABLE_X11__

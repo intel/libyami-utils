@@ -38,11 +38,15 @@ bool DecodeInputAvFormat::initInput(const char* fileName)
         goto error;
     uint32_t i;
     for (i = 0; i < m_format->nb_streams; ++i) {
-        AVCodecContext* ctx = m_format->streams[i]->codec;
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57, 33, 100)
+        AVCodecParameters* codec = m_format->streams[i]->codecpar;
+#else
+        AVCodecContext* codec = m_format->streams[i]->codec;
+#endif
         //VP9: width and height of the IVF header,VP8: width and height is zero
-        if (AVMEDIA_TYPE_VIDEO == ctx->codec_type) {
-            width = ctx->width;
-            height = ctx->height;
+        if (AVMEDIA_TYPE_VIDEO == codec->codec_type) {
+            width = codec->width;
+            height = codec->height;
             break;
         }
     }
@@ -52,17 +56,21 @@ bool DecodeInputAvFormat::initInput(const char* fileName)
         goto error;
     for (i = 0; i < m_format->nb_streams; i++)
     {
-        AVCodecContext* ctx = m_format->streams[i]->codec;
-        if (AVMEDIA_TYPE_VIDEO == ctx->codec_type) {
-            m_codecId = ctx->codec_id;
-            if (ctx->extradata && ctx->extradata_size)
-                m_codecData.append((char*)ctx->extradata, ctx->extradata_size);
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57, 33, 100)
+        AVCodecParameters* codec = m_format->streams[i]->codecpar;
+#else
+        AVCodecContext* codec = m_format->streams[i]->codec;
+#endif
+        if (AVMEDIA_TYPE_VIDEO == codec->codec_type) {
+            m_codecId = codec->codec_id;
+            if (codec->extradata && codec->extradata_size)
+                m_codecData.append((char*)codec->extradata, codec->extradata_size);
             m_videoId = i;
             //VP9: display_width and display_height of the first frame
-            if (ctx->coded_width > width)
-                width = ctx->coded_width;
-            if (ctx->coded_height > height)
-                height = ctx->coded_height;
+            if (codec->width > width)
+                width = codec->width;
+            if (codec->height > height)
+                height = codec->height;
             setResolution(width, height);
             break;
         }
