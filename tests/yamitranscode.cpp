@@ -49,6 +49,11 @@ static void print_help(const char* app)
     printf("   --intraperiod <Intra frame period(default 30)> optional\n");
     printf("   --refnum <number of referece frames(default 1)> optional\n");
     printf("   --idrinterval <AVC/HEVC IDR frame interval(default 0)> optional\n");
+    printf("   --enablecabac <AVC is to use CABAC or not in Main Profile (default true)> optional\n");
+    printf("   --enabledct8x8 <AVC is to use DCT8x8 transform or not in High Profile (default false)> optional\n");
+    printf("   --enabledeblockfilter <AVC is to use Deblock filter or not (default true)> optional\n");
+    printf("   --deblockalpha <AVC Alpha offset of debloking filter (default 0)> optional\n");
+    printf("   --deblockbeta <AVC Beta offset of debloking filter (default 0)> optional\n");
 }
 
 static VideoRateControl string_to_rc_mode(char *str)
@@ -77,6 +82,11 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
         {"intraperiod", required_argument, NULL, 0 },
         {"refnum", required_argument, NULL, 0 },
         {"idrinterval", required_argument, NULL, 0 },
+        {"enablecabac", required_argument, NULL, 0},
+        {"enabledct8x8", required_argument, NULL, 0},
+        {"enabledeblockfilter", required_argument, NULL, 0},
+        {"deblockalpha", required_argument, NULL, 0},
+        {"deblockbeta", required_argument, NULL, 0},
         {NULL, no_argument, NULL, 0 }};
     int option_index;
 
@@ -140,6 +150,21 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
                 case 6:
                     para.m_encParams.idrInterval = atoi(optarg);
                     break;
+                case 7:
+                    para.m_encParams.enableCabac = strncasecmp(optarg, "false", 5) != 0;
+                    break;
+                case 8:
+                    para.m_encParams.enableDct8x8 = strncasecmp(optarg, "true", 4) == 0;
+                    break;
+                case 9:
+                    para.m_encParams.enableDeblockFilter = strncasecmp(optarg, "false", 5) != 0;
+                    break;
+                case 10:
+                    para.m_encParams.deblockAlphaOffset = atoi(optarg);
+                    break;
+                case 11:
+                    para.m_encParams.deblockBetaOffset = atoi(optarg);
+                    break;
             }
         }
     }
@@ -195,7 +220,6 @@ SharedPtr<VppInput> createInput(TranscodeParams& para, const SharedPtr<VADisplay
 
 SharedPtr<VppOutput> createOutput(TranscodeParams& para, const SharedPtr<VADisplay>& display)
 {
-
     SharedPtr<VppOutput> output = VppOutput::create(para.outputFileName.c_str(), para.fourcc, para.oWidth, para.oHeight);
     SharedPtr<VppOutputFile> outputFile = std::tr1::dynamic_pointer_cast<VppOutputFile>(output);
     if (outputFile) {
