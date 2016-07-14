@@ -31,6 +31,8 @@ EncodeParams::EncodeParams()
     , enableCabac(true)
     , enableDct8x8(false)
     , enableDeblockFilter(true)
+    , deblockAlphaOffset(0)
+    , deblockBetaOffset(0)
 {
     /*nothing to do*/
 }
@@ -103,6 +105,8 @@ static void setEncodeParam(const SharedPtr<IVideoEncoder>& encoder,
     encVideoParamsAVC.enableCabac = encParam->enableCabac;
     encVideoParamsAVC.enableDct8x8 = encParam->enableDct8x8;
     encVideoParamsAVC.enableDeblockFilter = encParam->enableDeblockFilter;
+    encVideoParamsAVC.deblockAlphaOffset = encParam->deblockAlphaOffset;
+    encVideoParamsAVC.deblockBetaOffset = encParam->deblockBetaOffset;
     encoder->setParameters(VideoParamsTypeAVC, &encVideoParamsAVC);
 
     VideoConfigAVCStreamFormat streamFormat;

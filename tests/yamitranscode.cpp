@@ -52,6 +52,8 @@ static void print_help(const char* app)
     printf("   --enablecabac <AVC is to use CABAC or not in Main Profile (default true)> optional\n");
     printf("   --enabledct8x8 <AVC is to use DCT8x8 transform or not in High Profile (default false)> optional\n");
     printf("   --enabledeblockfilter <AVC is to use Deblock filter or not (default true)> optional\n");
+    printf("   --deblockalpha <AVC Alpha offset of debloking filter (default 0)> optional\n");
+    printf("   --deblockbeta <AVC Beta offset of debloking filter (default 0)> optional\n");
 }
 
 static VideoRateControl string_to_rc_mode(char *str)
@@ -83,6 +85,8 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
         {"enablecabac", required_argument, NULL, 0},
         {"enabledct8x8", required_argument, NULL, 0},
         {"enabledeblockfilter", required_argument, NULL, 0},
+        {"deblockalpha", required_argument, NULL, 0},
+        {"deblockbeta", required_argument, NULL, 0},
         {NULL, no_argument, NULL, 0 }};
     int option_index;
 
@@ -154,6 +158,12 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
                     break;
                 case 9:
                     para.m_encParams.enableDeblockFilter = strncasecmp(optarg, "false", 5) != 0;
+                    break;
+                case 10:
+                    para.m_encParams.deblockAlphaOffset = atoi(optarg);
+                    break;
+                case 11:
+                    para.m_encParams.deblockBetaOffset = atoi(optarg);
                     break;
             }
         }
