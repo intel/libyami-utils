@@ -89,10 +89,8 @@ bool VppInputDecodeCapi::read(SharedPtr<VideoFrame>& frame)
             decodeDecode(m_decoder, &inputBuffer);
             m_eos = true;
         }
-        if (status != DECODE_SUCCESS) { /*failed, need to flush*/
-            inputBuffer.data = NULL;
-            inputBuffer.size = 0;
-            decodeDecode(m_decoder, &inputBuffer);
+        if (status < 0) { /* fatal error */
+            fprintf(stderr, "got fatal error %d\n", status);
             m_error = true;
         }
     }
