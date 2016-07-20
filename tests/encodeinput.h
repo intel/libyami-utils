@@ -147,16 +147,35 @@ class EncodeOutputH264 : public EncodeOutput
     virtual const char* getMimeType();
 };
 
-class EncodeOutputVP8 : public EncodeOutput {
+class EncodeOutputVPX : public EncodeOutput {
 public:
-    EncodeOutputVP8();
-    ~EncodeOutputVP8();
-    virtual const char* getMimeType();
+    EncodeOutputVPX();
+    ~EncodeOutputVPX();
+    virtual const char* getMimeType() = 0;
     virtual bool write(void* data, int size);
+    void setFourcc(uint32_t fourcc) {m_fourcc = fourcc;};
+    uint32_t getFourcc() {return m_fourcc;};
 protected:
     virtual bool init(const char* outputFileName, int width , int height);
 private:
+    void getIVFFileHeader(uint8_t *header, int width, int height);
     int m_frameCount;
+    uint32_t m_fourcc;
+
+};
+
+class EncodeOutputVP8 : public EncodeOutputVPX {
+public:
+    EncodeOutputVP8();
+    ~EncodeOutputVP8(){};
+    virtual const char* getMimeType();
+};
+
+class EncodeOutputVP9 : public EncodeOutputVPX {
+public:
+    EncodeOutputVP9();
+    ~EncodeOutputVP9(){};
+    virtual const char* getMimeType();
 };
 
 class EncodeStreamOutputJpeg : public EncodeOutput

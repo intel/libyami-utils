@@ -81,7 +81,6 @@ int main(int argc, char** argv)
     setEncoderParameters(&encVideoParams);
     encVideoParams.size = sizeof(VideoParamsCommon);
     encoder->setParameters(VideoParamsTypeCommon, &encVideoParams);
-
     // configure AVC encoding parameters
     VideoParamsAVC encVideoParamsAVC;
     encVideoParamsAVC.size = sizeof(VideoParamsAVC);
@@ -139,7 +138,10 @@ int main(int argc, char** argv)
 #endif
             if (status == ENCODE_SUCCESS
                 && output->write(outputBuffer.data, outputBuffer.dataSize)) {
-                DEBUG("timeStamp(PTS) : " "%" PRIu64 "\n", outputBuffer.timeStamp);
+                DEBUG("timeStamp(PTS) : "
+                      "%" PRIu64,
+                      outputBuffer.timeStamp);
+                DEBUG("output data size %d", outputBuffer.dataSize);
             }
 #ifdef __BUILD_GET_MV__
             if (status == ENCODE_SUCCESS) {

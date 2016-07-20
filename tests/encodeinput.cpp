@@ -188,6 +188,9 @@ EncodeOutput* EncodeOutput::create(const char* outputFileName, int width , int h
             (strcasecmp(ext,"vp8")==0)) {
             output = new EncodeOutputVP8();
     }
+    else if((strcasecmp(ext,"vp9")==0)) {
+            output = new EncodeOutputVP9();
+    }
     else if((strcasecmp(ext,"jpg")==0) ||
                (strcasecmp(ext,"jpeg")==0)) {
                output = new EncodeStreamOutputJpeg();
@@ -237,6 +240,11 @@ const char* EncodeOutputVP8::getMimeType()
     return YAMI_MIME_VP8;
 }
 
+const char* EncodeOutputVP9::getMimeType()
+{
+    return YAMI_MIME_VP9;
+}
+
 const char* EncodeOutputHEVC::getMimeType()
 {
     return YAMI_MIME_HEVC;
@@ -254,30 +262,30 @@ void setUint16(uint8_t* header, uint16_t value)
     *h = value;
 }
 
-static void get_ivf_file_header(uint8_t *header, int width, int height,int count)
+void EncodeOutputVPX::getIVFFileHeader(uint8_t *header, int width, int height)
 {
     setUint32(header, YAMI_FOURCC('D','K','I','F'));
-    setUint16(header+4, 0);                     /* version */
-    setUint16(header+6,  32);                   /* headersize */
-    setUint32(header+8,  YAMI_FOURCC('V','P','8','0'));    /* headersize */
-    setUint16(header+12, width);                /* width */
-    setUint16(header+14, height);               /* height */
-    setUint32(header+16, 30);                    /* rate */
-    setUint32(header+20, 1);                    /* scale */
-    setUint32(header+24, count);                /* length */
-    setUint32(header+28, 0);                    /* unused */
+    setUint16(header+4, 0);                     // version
+    setUint16(header+6,  32);                   // headersize
+    setUint32(header+8,  m_fourcc);             // fourcc
+    setUint16(header+12, width);                // width
+    setUint16(header+14, height);               // height
+    setUint32(header+16, 30);                   // rate
+    setUint32(header+20, 1);                    // scale
+    setUint32(header+24, m_frameCount);         // framecount
+    setUint32(header+28, 0);                    // unused
 }
 
-bool EncodeOutputVP8::init(const char* outputFileName, int width , int height)
+bool EncodeOutputVPX::init(const char* outputFileName, int width , int height)
 {
     if (!EncodeOutput::init(outputFileName, width, height))
         return false;
     uint8_t header[32];
-    get_ivf_file_header(header, width, height, m_frameCount);
+    getIVFFileHeader(header, width, height);
     return EncodeOutput::write(header, sizeof(header));
 }
 
-bool EncodeOutputVP8::write(void* data, int size)
+bool EncodeOutputVPX::write(void* data, int size)
 {
     uint8_t header[12];
     memset(header, 0, sizeof(header));
@@ -289,13 +297,27 @@ bool EncodeOutputVP8::write(void* data, int size)
     m_frameCount++;
     return true;
 }
-EncodeOutputVP8::EncodeOutputVP8():m_frameCount(0){}
+EncodeOutputVPX::EncodeOutputVPX()
+    : m_frameCount(0)
+    , m_fourcc(0)
+{
+}
 
-EncodeOutputVP8::~EncodeOutputVP8()
+EncodeOutputVPX::~EncodeOutputVPX()
 {
     if (m_fp && !fseek(m_fp, 24,SEEK_SET)) {
         EncodeOutput::write(&m_frameCount, sizeof(m_frameCount));
     }
+}
+
+EncodeOutputVP8::EncodeOutputVP8()
+{
+    EncodeOutputVPX::setFourcc(YAMI_FOURCC('V','P','8','0'));
+}
+
+EncodeOutputVP9::EncodeOutputVP9()
+{
+    EncodeOutputVPX::setFourcc(YAMI_FOURCC('V','P','9','0'));
 }
 
 bool createOutputBuffer(VideoEncOutputBuffer* outputBuffer, int maxOutSize)

@@ -59,8 +59,8 @@ static void print_help(const char* app)
     printf("   -o <coded file> optional\n");
     printf("   -b <bitrate: kbps> optional\n");
     printf("   -f <frame rate> optional\n");
-    printf("   -c <codec: AVC|VP8|JPEG> Note: not support now\n");
-    printf("   -s <fourcc: NV12|IYUV|YV12> Note: not support now\n");
+    printf("   -c <codec: AVC|VP8|VP9|JPEG>\n");
+    printf("   -s <fourcc: NV12|IYUV|YV12>\n");
     printf("   -N <number of frames to encode(camera default 50), useful for camera>\n");
     printf("   --qp <initial qp> optional\n");
     printf("   --rcmode <CBR|CQP> optional\n");
