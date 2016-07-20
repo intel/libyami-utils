@@ -17,6 +17,7 @@
 #include "config.h"
 #endif
 #include "vppoutputencode.h"
+#include "YamiVersion.h"
 
 EncodeParams::EncodeParams()
     : rcMode(RATE_CONTROL_CQP)
@@ -28,6 +29,11 @@ EncodeParams::EncodeParams()
     , numRefFrames(1)
     , idrInterval(0)
     , codec("AVC")
+    , enableCabac(true)
+    , enableDct8x8(false)
+    , enableDeblockFilter(true)
+    , deblockAlphaOffsetDiv2(2)
+    , deblockBetaOffsetDiv2(2)
 {
     /*nothing to do*/
 }
@@ -70,7 +76,7 @@ void VppOutputEncode::initOuputBuffer()
 static void setEncodeParam(const SharedPtr<IVideoEncoder>& encoder,
                            int width, int height, const EncodeParams* encParam)
 {
-       //configure encoding parameters
+    //configure encoding parameters
     VideoParamsCommon encVideoParams;
     encVideoParams.size = sizeof(VideoParamsCommon);
     encoder->getParameters(VideoParamsTypeCommon, &encVideoParams);
@@ -88,7 +94,6 @@ static void setEncodeParam(const SharedPtr<IVideoEncoder>& encoder,
     encVideoParams.rcParams.initQP = encParam->initQp;
     encVideoParams.rcMode = encParam->rcMode;
     encVideoParams.numRefFrames = encParam->numRefFrames;
-
     encVideoParams.size = sizeof(VideoParamsCommon);
     encoder->setParameters(VideoParamsTypeCommon, &encVideoParams);
 
@@ -98,6 +103,17 @@ static void setEncodeParam(const SharedPtr<IVideoEncoder>& encoder,
     encoder->getParameters(VideoParamsTypeAVC, &encVideoParamsAVC);
     encVideoParamsAVC.idrInterval = encParam->idrInterval;
     encVideoParamsAVC.size = sizeof(VideoParamsAVC);
+#if YAMI_CHECK_API_VERSION(0, 2, 1)
+    encVideoParamsAVC.enableCabac = encParam->enableCabac;
+    encVideoParamsAVC.enableDct8x8 = encParam->enableDct8x8;
+    encVideoParamsAVC.enableDeblockFilter = encParam->enableDeblockFilter;
+    encVideoParamsAVC.deblockAlphaOffsetDiv2 = encParam->deblockAlphaOffsetDiv2;
+    encVideoParamsAVC.deblockBetaOffsetDiv2 = encParam->deblockBetaOffsetDiv2;
+#else
+    ERROR("version num of YamiAPI should be greater than or enqual to %s, \n%s "
+    , "0.2.1"
+    , "or enableCabac, enableDct8x8 and enableDeblockFilter will use the default value");
+#endif
     encoder->setParameters(VideoParamsTypeAVC, &encVideoParamsAVC);
 
     VideoConfigAVCStreamFormat streamFormat;
