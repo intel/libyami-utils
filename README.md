@@ -1,14 +1,12 @@
 #libyami-utils
-It's test application/script work with libyami.
+Applications and Scripts for libyami.
 You can find libyami in https://github.com/01org/libyami
 
 * Copyright (C) 2011-2016 Intel Corporation
-* Copyright (C) 2015-2016 Alibaba
-
 
 License
 -------
-libyami-utils are available under the terms of the
+libyami-utils is available under the terms of the
 Apache License 2.0
 
 
@@ -25,13 +23,13 @@ Requirements
 ------------
 Hardware requirements
 
-  * Intel Sandybridge, Ivybridge, Haswell and Broadwell (HD Graphics)
-  * Intel Baytrail, Braswell
+  * Intel Sandybridge, Ivybridge, Haswell, Broadwell, Skylake, Kabylake
+  * Intel Baytrail, Braswell, Apollolake, Kabylake
 
 
 Sources
 -------
-Git repository for work-in-progress changes is available at:
+Git repository is available at:
 
 <https://github.com/01org/libyami-utils>
 
@@ -70,7 +68,7 @@ Reporting Bugs
 --------------
 Bugs can be reported in libyami's issue list at:
 
-  <https://github.com/01org/libyami/issues/new>
+  <https://github.com/01org/libyami-utils/issues/new>
 
 
 FAQ
