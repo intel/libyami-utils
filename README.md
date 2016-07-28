@@ -66,7 +66,7 @@ libyami@lists.01.org
 
 Reporting Bugs
 --------------
-Bugs can be reported in libyami's issue list at:
+Bugs can be reported in libyami-utils issue list at:
 
   <https://github.com/01org/libyami-utils/issues/new>
 
