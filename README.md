@@ -23,8 +23,8 @@ Requirements
 ------------
 Hardware requirements
 
-  * Intel Sandybridge, Ivybridge, Haswell, Broadwell, Skylake, Kabylake
-  * Intel Baytrail, Braswell, Apollolake, Kabylake
+  * Intel (core) Sandybridge, Ivybridge, Haswell, Broadwell, Skylake, Kabylake
+  * Intel (atom) Baytrail, Braswell, Apollolake
 
 
 Sources
