@@ -73,17 +73,21 @@ class Blend
 public:
     bool init(int argc, char** argv)
     {
-        const char* optShort = "bom";
+        const char* optShort = "dbomw";
         const struct option optLong[] = {
             { "flip", required_argument, NULL, 'F' },
             { "rotate", required_argument, NULL, 'R' },
             { "ot", required_argument, NULL, 'T' },
             { "ms", required_argument, NULL, 'S' },
-            {0, 0, 0, 0},
+            { "wf", required_argument, NULL, 'W' },
+            { 0, 0, 0, 0 },
         };
         int opt;
         while ((opt = getopt_long(argc, argv, optShort, optLong, NULL)) != -1) {
             switch (opt) {
+            case 'd':
+                m_bDump = true;
+                break;
             case 'b':
                 m_bBlend = true;
                 break;
@@ -92,6 +96,9 @@ public:
                 break;
             case 'm':
                 m_bMosaic = true;
+                break;
+            case 'w':
+                m_bWireframe = true;
                 break;
             case 'F': {
                 int flip = atoi(optarg);
@@ -133,14 +140,25 @@ public:
                 m_mosaicSize = size;
                 break;
             }
+            case 'W': {
+                int width = atoi(optarg);
+                if (width % 2) {
+                    fprintf(stderr, "wireframe width must be even\n");
+                    usage();
+                    return false;
+                }
+                m_wireframeWidth = width;
+                break;
+            }
             default:
                 fprintf(stderr, "invalid argument");
                 usage();
                 return false;
             }
         }
-        printf("Blend: %d, OSD(%d): %d, Mosaic(%d): %d, Transform: %u\n",
-            m_bBlend, m_osdThreshold, m_bOsd, m_mosaicSize, m_bMosaic, m_flipRot);
+        printf("Blend: %d, OSD(%d): %d, Mosaic(%d): %d, Wireframe(%d): %d, Transform: %u\n",
+            m_bBlend, m_osdThreshold, m_bOsd, m_mosaicSize, m_bMosaic,
+            m_wireframeWidth, m_bWireframe, m_flipRot);
 
         m_input.reset(new VppInputDecode);
         if (optind >= argc) {
@@ -171,6 +189,8 @@ public:
             return false;
         if (m_bMosaic && !createMosaicSurfaces(width, height))
             return false;
+        if (m_bWireframe && !createWireframeSurfaces(width, height))
+            return false;
         if (!createDestSurface(width, height))
             return false;
         if (m_flipRot) {
@@ -188,6 +208,12 @@ public:
         else {
             resizeWindow(960, 540);
         }
+
+        if (m_bDump && !(m_fp = fopen("blend.nv12", "wb"))) {
+            ERROR("can't open blend.nv12");
+            return false;
+        }
+
         return true;
     }
     bool run()
@@ -213,6 +239,12 @@ public:
                 process(m_mosaic, "mosaic", srcFrame, m_mosaicBumpBoxes, m_dest);
             }
 
+            if (m_bWireframe) {
+                vector<SharedPtr<VideoFrame> > srcFrame;
+                srcFrame.push_back(m_dest);
+                process(m_wireframe, "wireframe", srcFrame, m_wireframeBumpBoxes, m_dest);
+            }
+
             if (m_flipRot) {
                 PERF_START("transform");
                 memcpy(&m_dest->crop, &frame->crop, sizeof(VideoRect));
@@ -227,6 +259,8 @@ public:
                 }
                 m_transform->process(m_dest, m_displaySurface);
                 PERF_STOP("transform");
+                if (m_bDump && m_fp != NULL)
+                    write(m_displaySurface);
                 //display it on screen
                 status = vaPutSurface(*m_vaDisplay, (VASurfaceID)m_displaySurface->surface,
                     m_window, m_displaySurface->crop.x, m_displaySurface->crop.y, m_displaySurface->crop.width, m_displaySurface->crop.height, 0, 0, m_width, m_height,
@@ -235,6 +269,8 @@ public:
             else {
                 //display it on screen
                 memcpy(&m_dest->crop, &frame->crop, sizeof(VideoRect));
+                if (m_bDump && m_fp != NULL)
+                    write(m_dest);
                 status = vaPutSurface(*m_vaDisplay, (VASurfaceID)m_dest->surface,
                     m_window, m_dest->crop.x, m_dest->crop.y, m_dest->crop.width, m_dest->crop.height, 0, 0, m_width, m_height,
                     NULL, 0, 0);
@@ -250,11 +286,15 @@ public:
         : m_window(0)
         , m_width(0)
         , m_height(0)
+        , m_bDump(false)
+        , m_fp(NULL)
         , m_bBlend(false)
         , m_bOsd(false)
         , m_bMosaic(false)
+        , m_bWireframe(false)
         , m_osdThreshold(128)
         , m_mosaicSize(32)
+        , m_wireframeWidth(4)
         , m_flipRot(0)
     {
     }
@@ -264,18 +304,23 @@ public:
         if (m_window) {
             XDestroyWindow(m_display.get(), m_window);
         }
+        if (m_fp)
+            fclose(m_fp);
     }
 private:
     void usage()
     {
         fprintf(stderr, "Usage: blend [OPTIONS] xxx.264\n"
-            "  -b               enable alpha blending\n"
-            "  -o               enable OSD\n"
-            "  -m               enable mosaic\n"
-            "  --flip=TYPE      0: flip horizontal, 1: flip vertical\n"
-            "  --rotate=DEGREE  rotate clock wise: 0, 90, 270\n"
-            "  --ot=THRESHOLD   threshold for OSD font color: [0, 255]\n"
-            "  --ms=SIZE        mosaic block size: [1, 256]\n");
+                        "  -d               dump to file\n"
+                        "  -b               enable alpha blending\n"
+                        "  -o               enable OSD\n"
+                        "  -m               enable mosaic\n"
+                        "  -w               enable wireframe\n"
+                        "  --flip=TYPE      0: flip horizontal, 1: flip vertical\n"
+                        "  --rotate=DEGREE  rotate clock wise: 0, 90, 270\n"
+                        "  --ot=THRESHOLD   threshold for OSD font color: [0, 255]\n"
+                        "  --ms=SIZE        mosaic block size: [1, 256]\n"
+                        "  --wf=SIZE        wireframe border width: even\n");
     }
     void setRandomSeed()
     {
@@ -428,6 +473,19 @@ private:
         return true;
     }
 
+    bool createWireframeSurfaces(uint32_t targetWidth, uint32_t targetHeight)
+    {
+        uint32_t maxWidth = targetWidth / 2;
+        uint32_t maxHeight = targetHeight / 2;
+        for (int i = 0; i < 1; i++) {
+            int w = maxWidth;
+            int h = maxHeight;
+            SharedPtr<BumpBox> box(new BumpBox(targetWidth, targetHeight, w, h));
+            m_wireframeBumpBoxes.push_back(box);
+        }
+        return true;
+    }
+
     bool createDestSurface(uint32_t targetWidth, uint32_t targetHeight)
     {
         m_dest = createSurface(VA_RT_FORMAT_YUV420, VA_FOURCC_NV12, targetWidth, targetHeight);
@@ -475,6 +533,19 @@ private:
             mosaicParam.size = sizeof(VppParamMosaic);
             mosaicParam.blockSize = m_mosaicSize;
             m_mosaic->setParameters(VppParamTypeMosaic, &mosaicParam);
+        }
+
+        if (m_bWireframe) {
+            m_wireframe.reset(createVideoPostProcess(YAMI_VPP_OCL_WIREFRAME), releaseVideoPostProcess);
+            if (!m_wireframe || m_wireframe->setNativeDisplay(nativeDisplay) != YAMI_SUCCESS)
+                return false;
+            VppParamWireframe wireframeParam;
+            wireframeParam.size = sizeof(VppParamWireframe);
+            wireframeParam.borderWidth = m_wireframeWidth;
+            wireframeParam.colorY = 255;
+            wireframeParam.colorU = 0;
+            wireframeParam.colorV = 0;
+            m_wireframe->setParameters(VppParamTypeWireframe, &wireframeParam);
         }
 
         if (m_flipRot) {
@@ -533,6 +604,28 @@ private:
         return true;
     }
 
+    bool write(SharedPtr<VideoFrame>& frame)
+    {
+        VASurfaceID surface = (VASurfaceID)frame->surface;
+        VAImage image;
+
+        uint8_t* buf = mapSurfaceToImage(*m_vaDisplay, surface, image);
+        if (buf != NULL) {
+            for (int i = 0; i < image.height; i++) {
+                fwrite(buf + i * image.pitches[0], 1, image.width, m_fp);
+            }
+            buf += image.offsets[1];
+            for (int i = 0; i < image.height / 2; i++) {
+                fwrite(buf + i * image.pitches[1], 1, image.width, m_fp);
+            }
+            unmapImage(*m_vaDisplay, image);
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
     SharedPtr<Display> m_display;
     SharedPtr<NativeDisplay> m_nativeDisplay;
     SharedPtr<VADisplay> m_vaDisplay;
@@ -542,20 +635,26 @@ private:
     SharedPtr<IVideoPostProcess> m_blender;
     SharedPtr<IVideoPostProcess> m_osd;
     SharedPtr<IVideoPostProcess> m_mosaic;
+    SharedPtr<IVideoPostProcess> m_wireframe;
     SharedPtr<IVideoPostProcess> m_transform;
     int m_width, m_height;
+    bool m_bDump;
+    FILE* m_fp;
     vector<SharedPtr<VideoFrame> > m_blendSurfaces;
     vector<SharedPtr<BumpBox> > m_blendBumpBoxes;
     vector<SharedPtr<VideoFrame> > m_osdSurfaces;
     vector<SharedPtr<BumpBox> > m_osdBumpBoxes;
     vector<SharedPtr<BumpBox> > m_mosaicBumpBoxes;
+    vector<SharedPtr<BumpBox> > m_wireframeBumpBoxes;
     SharedPtr<VideoFrame> m_dest;
     SharedPtr<VideoFrame> m_displaySurface;
     bool m_bBlend;
     bool m_bOsd;
     bool m_bMosaic;
+    bool m_bWireframe;
     int m_osdThreshold;
     int m_mosaicSize;
+    int m_wireframeWidth;
     uint32_t m_flipRot;
 };
 
