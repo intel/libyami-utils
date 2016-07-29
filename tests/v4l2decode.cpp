@@ -46,7 +46,7 @@
 #endif
 
 #if __ENABLE_V4L2_OPS__
-#include "v4l2/v4l2codec_device_ops.h"
+#include "v4l2codec_device_ops.h"
 #include <dlfcn.h>
 #include <fcntl.h>
 #else

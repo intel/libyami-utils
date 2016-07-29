@@ -30,7 +30,6 @@
 #include "common/v4l2_wrapper.h"
 #include "encodehelp.h"
 #include "encodeinput.h"
-#include "v4l2/v4l2codec_device_ops.h"
 
 static enum v4l2_memory inputMemoryType = V4L2_MEMORY_USERPTR;
 const static enum v4l2_memory outputMemoryType = V4L2_MEMORY_MMAP;

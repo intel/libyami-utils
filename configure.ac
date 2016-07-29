@@ -104,6 +104,18 @@ fi
 AM_CONDITIONAL(ENABLE_V4L2,
     [test "x$enable_v4l2" = "xyes"])
 
+AC_ARG_ENABLE(v4l2-ops,
+    [AC_HELP_STRING([--enable-v4l2-ops],
+        [support v4l2codec_device_ops.h interface in v4l2 wrapper @<:@default=no@:>@])],
+    [], [enable_v4l2_ops="no"])
+
+if test "$enable_v4l2_ops" = "yes"; then
+    AC_DEFINE([__ENABLE_V4L2_OPS__], [1],
+        [Defined to 1 if --enable-v4l2-ops="yes"])
+fi
+AM_CONDITIONAL(ENABLE_V4L2_OPS,
+    [test "x$enable_v4l2_ops" = "xyes"])
+
 AC_ARG_ENABLE(capi,
     [AC_HELP_STRING([--enable-capi],
         [wrapper of c api interface @<:@default=no@:>@])],
