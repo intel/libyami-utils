@@ -82,9 +82,9 @@ void fillV4L2Buffer(struct v4l2_buffer& buf, const VideoFrameRawData& frame)
             buf.m.planes[i].m.userptr = data + frame.offset[i];
         }
     }
-    else if (memoryType == VIDEO_DATA_MEMORY_TYPE_ANDROID_NATIVE_BUFFER) {
+    else if (memoryType == VIDEO_DATA_MEMORY_TYPE_ANDROID_BUFFER_HANDLE) {
         // !!! FIXME, v4l2 use long for userptr. so bad
-        DEBUG("ANativeWindowBuffer, frame.handle: %p", (void*)frame.handle);
+        DEBUG("ANativeWindowBuffer->handle: %p", (void*)frame.handle);
         buf.m.planes[0].m.userptr = (long)((intptr_t)frame.handle);
         buf.m.planes[0].bytesused = sizeof(buf.m.planes[0].m.userptr);
     }
@@ -219,7 +219,7 @@ int main(int argc, char** argv)
 
 #if ANDROID
     if (!inputFileName) {
-        memoryType = VIDEO_DATA_MEMORY_TYPE_ANDROID_NATIVE_BUFFER;
+        memoryType = VIDEO_DATA_MEMORY_TYPE_ANDROID_BUFFER_HANDLE;
         inputFourcc = VA_FOURCC_NV12;
     }
 #endif
@@ -331,7 +331,7 @@ int main(int argc, char** argv)
     inputQueueCapacity = reqbufs.count;
 
 #if ANDROID
-    if (memoryType != VIDEO_DATA_MEMORY_TYPE_ANDROID_NATIVE_BUFFER)
+    if (memoryType != VIDEO_DATA_MEMORY_TYPE_ANDROID_BUFFER_HANDLE)
 #endif
     {
         for (i = 0; i < inputQueueCapacity; i++) {
