@@ -38,6 +38,9 @@
 #include <va/va_x11.h>
 #endif
 
+#ifdef __ENABLE_WAYLAND__
+#include <va/va_wayland.h>
+#endif
 #ifdef __ENABLE_TESTS_GLES__
 #include "./egl/gles2_help.h"
 #include "egl/egl_util.h"
@@ -54,6 +57,15 @@
 
 using namespace YamiMediaCodec;
 using std::vector;
+
+struct VADisplayTerminator {
+    VADisplayTerminator() {}
+    void operator()(VADisplay* display)
+    {
+        vaTerminate(*display);
+        delete display;
+    }
+};
 
 bool DecodeOutput::init()
 {
@@ -484,15 +496,6 @@ bool DecodeOutputX11::setVideoSize(uint32_t width, uint32_t height)
     return DecodeOutput::setVideoSize(width, height);
 }
 
-struct VADisplayTerminator {
-    VADisplayTerminator() {}
-    void operator()(VADisplay* display)
-    {
-        vaTerminate(*display);
-        delete display;
-    }
-};
-
 bool DecodeOutputX11::createX11Display()
 {
     SharedPtr<VADisplay> display;
@@ -738,6 +741,180 @@ DecodeOutputDmabuf::DecodeOutputDmabuf(VideoDataMemoryType memoryType)
 #endif //__ENABLE_TESTS_GLES__
 #endif //__ENABLE_X11__
 
+#ifdef __ENABLE_WAYLAND__
+struct display {
+    SharedPtr<wl_display>        display;
+    SharedPtr<wl_compositor>     compositor;
+    SharedPtr<wl_shell>          shell;
+    SharedPtr<wl_shell_surface>  shell_surface;
+    SharedPtr<wl_surface>        surface;
+};
+
+class DecodeOutputWayland : public DecodeOutput
+{
+public:
+    DecodeOutputWayland();
+    virtual ~DecodeOutputWayland();
+    bool output(const SharedPtr<VideoFrame>& frame);
+    bool init();
+protected:
+    virtual bool setVideoSize(uint32_t width, uint32_t height);
+    bool createWaylandDisplay();
+    static void registryHandle(void *data, struct wl_registry *registry,
+                               uint32_t id, const char *interface, uint32_t version);
+    static void frameRedrawCallback(void *data, struct wl_callback *callback, uint32_t time);
+    bool ensureWindow(unsigned int width, unsigned int height);
+    bool vaPutSurfaceWayland(VASurfaceID surface,
+                             const VARectangle *srcRect, const VARectangle *dstRect);
+    bool m_redrawPending;
+    struct display m_waylandDisplay;
+};
+
+void DecodeOutputWayland::registryHandle(
+    void                    *data,
+    struct wl_registry      *registry,
+    uint32_t                id,
+    const char              *interface,
+    uint32_t                version
+)
+{
+    struct display * d = (struct display * )data;
+
+    if (strcmp(interface, "wl_compositor") == 0)
+        d->compositor.reset((struct wl_compositor *)wl_registry_bind(registry, id,
+                                                   &wl_compositor_interface, 1), wl_compositor_destroy);
+    else if (strcmp(interface, "wl_shell") == 0)
+        d->shell.reset((struct wl_shell *)wl_registry_bind(registry, id,
+	                                               &wl_shell_interface, 1), wl_shell_destroy);
+}
+
+void DecodeOutputWayland::frameRedrawCallback(void *data,
+	                                       struct wl_callback *callback, uint32_t time)
+{
+    *(bool *)data = false;
+    wl_callback_destroy(callback);
+}
+
+bool DecodeOutputWayland::ensureWindow(unsigned int width, unsigned int height)
+{
+    struct display * const d = &m_waylandDisplay;
+
+    if (!d->surface) {
+        d->surface.reset(wl_compositor_create_surface(d->compositor.get()), wl_surface_destroy);
+        if (!d->surface)
+            return false;
+    }
+
+    if (!d->shell_surface) {
+        d->shell_surface.reset(wl_shell_get_shell_surface(d->shell.get(), d->surface.get()),
+                                                                       wl_shell_surface_destroy);
+        if (!d->shell_surface)
+            return false;
+        wl_shell_surface_set_toplevel(d->shell_surface.get());
+    }
+    return true;
+}
+
+bool DecodeOutputWayland::vaPutSurfaceWayland(VASurfaceID surface,
+                                              const VARectangle *srcRect,
+                                              const VARectangle *dstRect)
+{
+    VAStatus vaStatus;
+    struct wl_buffer *buffer;
+    struct wl_callback *callback;
+    struct display * const d = &m_waylandDisplay;
+    struct wl_callback_listener frame_callback_listener = {frameRedrawCallback};
+
+    if (m_redrawPending) {
+        wl_display_flush(d->display.get());
+        while (m_redrawPending) {
+            wl_display_dispatch(d->display.get());
+        }
+    }
+
+    if (!ensureWindow(dstRect->width, dstRect->height))
+        return false;
+
+    vaStatus = vaGetSurfaceBufferWl(*m_vaDisplay, surface, VA_FRAME_PICTURE, &buffer);
+    if (vaStatus != VA_STATUS_SUCCESS)
+        return false;
+
+    wl_surface_attach(d->surface.get(), buffer, 0, 0);
+    wl_surface_damage(d->surface.get(), dstRect->x,
+		dstRect->y, dstRect->width, dstRect->height);
+    wl_display_flush(d->display.get());
+    m_redrawPending = true;
+    callback = wl_surface_frame(d->surface.get());
+    wl_callback_add_listener(callback, &frame_callback_listener,&m_redrawPending);
+    wl_surface_commit(d->surface.get());
+    return true;
+}
+
+bool DecodeOutputWayland::output(const SharedPtr<VideoFrame>& frame)
+{
+    VARectangle srcRect, dstRect;
+    if (!setVideoSize(frame->crop.width, frame->crop.height))
+        return false;
+
+    srcRect.x = 0;
+    srcRect.y = 0;
+    srcRect.width  = frame->crop.width;
+    srcRect.height = frame->crop.height;
+
+    dstRect.x = frame->crop.x;
+    dstRect.y = frame->crop.y;
+    dstRect.width  = frame->crop.width;
+    dstRect.height = frame->crop.height;
+    return vaPutSurfaceWayland((VASurfaceID)frame->surface, &srcRect, &dstRect);
+}
+
+bool DecodeOutputWayland::setVideoSize(uint32_t width, uint32_t height)
+{
+    return ensureWindow(width, height);
+}
+
+bool DecodeOutputWayland::createWaylandDisplay()
+{
+    int major, minor;
+    SharedPtr<VADisplay> display;
+    struct display *d = &m_waylandDisplay;
+    struct wl_registry_listener registry_listener = {
+        DecodeOutputWayland::registryHandle,
+        NULL,
+    };
+
+    d->display.reset(wl_display_connect(NULL), wl_display_disconnect);
+    if (!d->display) {
+        return false;
+    }
+    wl_display_set_user_data(d->display.get(), d);
+    struct wl_registry *registry = wl_display_get_registry(d->display.get());
+    wl_registry_add_listener(registry, &registry_listener, d);
+    wl_display_dispatch(d->display.get());
+    VADisplay vaDisplayHandle = vaGetDisplayWl(d->display.get());
+    VAStatus status = vaInitialize(vaDisplayHandle, &major, &minor);
+    if (!checkVaapiStatus(status, "vaInitialize"))
+        return false;
+    m_vaDisplay.reset(new VADisplay(vaDisplayHandle), VADisplayTerminator());
+    return true;
+}
+
+bool DecodeOutputWayland::init()
+{
+    return createWaylandDisplay() && DecodeOutput::init();
+}
+
+DecodeOutputWayland::DecodeOutputWayland()
+    : m_redrawPending(false)
+{
+}
+
+DecodeOutputWayland::~DecodeOutputWayland()
+{
+    m_vaDisplay.reset();
+}
+#endif
+
 DecodeOutput* DecodeOutput::create(int renderMode, uint32_t fourcc, const char* inputFile, const char* outputFile)
 {
     DecodeOutput* output;
@@ -769,6 +946,12 @@ DecodeOutput* DecodeOutput::create(int renderMode, uint32_t fourcc, const char* 
         break;
 #endif //__ENABLE_TESTS_GLES__
 #endif //__ENABLE_X11__
+
+#ifdef __ENABLE_WAYLAND__
+    case 5:
+	  output = new DecodeOutputWayland();
+	  break;
+#endif
     default:
         fprintf(stderr, "renderMode:%d, do not support this render mode\n", renderMode);
         return NULL;
