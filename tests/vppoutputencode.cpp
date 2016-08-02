@@ -34,6 +34,8 @@ EncodeParams::EncodeParams()
     , enableDeblockFilter(true)
     , deblockAlphaOffsetDiv2(2)
     , deblockBetaOffsetDiv2(2)
+    , diffQPIP(0)
+    , diffQPIB(0)
 {
     /*nothing to do*/
 }
@@ -92,6 +94,8 @@ static void setEncodeParam(const SharedPtr<IVideoEncoder>& encoder,
     encVideoParams.ipPeriod = encParam->ipPeriod;
     encVideoParams.rcParams.bitRate = encParam->bitRate;
     encVideoParams.rcParams.initQP = encParam->initQp;
+    encVideoParams.rcParams.diffQPIP = encParam->diffQPIP;
+    encVideoParams.rcParams.diffQPIB = encParam->diffQPIB;
     encVideoParams.rcMode = encParam->rcMode;
     encVideoParams.numRefFrames = encParam->numRefFrames;
     encVideoParams.size = sizeof(VideoParamsCommon);
