@@ -244,11 +244,11 @@ SharedPtr<VppOutput> createOutput(TranscodeParams& para, const SharedPtr<VADispl
     return output;
 }
 
-SharedPtr<FrameAllocator> createAllocator(const SharedPtr<VppOutput>& output, const SharedPtr<VADisplay>& display)
+SharedPtr<FrameAllocator> createAllocator(const SharedPtr<VppOutput>& output, const SharedPtr<VADisplay>& display, int32_t extraSize)
 {
     uint32_t fourcc;
     int width, height;
-    SharedPtr<FrameAllocator> allocator(new PooledFrameAllocator(display, 5));
+    SharedPtr<FrameAllocator> allocator(new PooledFrameAllocator(display, std::max(extraSize, 5)));
     if (!output->getFormat(fourcc, width, height)
         || !allocator->setFormat(fourcc, width,height)) {
         allocator.reset();
@@ -280,7 +280,7 @@ public:
             ERROR("create input or output failed");
             return false;
         }
-        m_allocator = createAllocator(m_output, m_display);
+        m_allocator = createAllocator(m_output, m_display, m_cmdParam.m_encParams.ipPeriod);
         return m_allocator;
     }
 
