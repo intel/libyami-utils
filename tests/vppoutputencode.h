@@ -43,6 +43,8 @@ public:
     bool enableDeblockFilter;
     int8_t deblockAlphaOffsetDiv2; //same as slice_alpha_c0_offset_div2 defined in h264 spec 7.4.3
     int8_t deblockBetaOffsetDiv2; //same as slice_beta_offset_div2 defined in h264 spec 7.4.3
+    int8_t diffQPIP;// P frame qp minus initQP
+    int8_t diffQPIB;// B frame qp minus initQP
 };
 
 class TranscodeParams

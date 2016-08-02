@@ -54,6 +54,8 @@ static void print_help(const char* app)
     printf("   --enabledeblockfilter <AVC is to use Deblock filter or not (default true)> optional\n");
     printf("   --deblockalphadiv2 <AVC Alpha offset of debloking filter divided 2 (default 2)> optional\n");
     printf("   --deblockbetadiv2 <AVC Beta offset of debloking filter divided 2 (default 2)> optional\n");
+    printf("   --qpip <qp difference between adjacent I/P (default 0)> optional\n");
+    printf("   --qpib <qp difference between adjacent I/B (default 0)> optional\n");
 }
 
 static VideoRateControl string_to_rc_mode(char *str)
@@ -87,6 +89,8 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
         {"enabledeblockfilter", required_argument, NULL, 0},
         {"deblockalphadiv2", required_argument, NULL, 0},
         {"deblockbetadiv2", required_argument, NULL, 0},
+        {"qpip", required_argument, NULL, 0 },
+        {"qpib", required_argument, NULL, 0 },
         {NULL, no_argument, NULL, 0 }};
     int option_index;
 
@@ -164,6 +168,12 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
                     break;
                 case 11:
                     para.m_encParams.deblockBetaOffsetDiv2 = atoi(optarg);
+                    break;
+                case 12:
+                    para.m_encParams.diffQPIP = atoi(optarg);
+                    break;
+                case 13:
+                    para.m_encParams.diffQPIB = atoi(optarg);
                     break;
             }
         }
