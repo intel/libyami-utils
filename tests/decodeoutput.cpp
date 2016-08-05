@@ -145,61 +145,39 @@ public:
         }
         return dest;
     }
-    //opensource libva driver can't makesure nv12 to i420 is bit match
-    //so we need software converter.
-    bool convert(vector<uint8_t>& dest, const SharedPtr<VideoFrame>& src)
+    //collect all bytes to dest
+    bool convert(vector<uint8_t>& dest, const SharedPtr<VideoFrame>& frame)
     {
-        dest.clear();
-        if (src->fourcc != YAMI_FOURCC_NV12
-            || m_destFourcc != YAMI_FOURCC('I', '4', '2', '0')) {
-            ERROR("only support nv12 to i420 convert");
+        SharedPtr<VideoFrame> src = convert(frame);
+        if (!src)
             return false;
-        }
+        dest.clear();
         VAImage image;
         uint8_t* p = mapSurfaceToImage(*m_display, src->surface, image);
         if (!p) {
             ERROR("failed to map VAImage");
             return false;
         }
-        //TODO: hanld no zero x, y for crop;
-        ASSERT("can't support no zero x,y for crop" && !src->crop.x && !src->crop.y);
 
         uint32_t planes, width[3], height[3];
         if (!getPlaneResolution(src->fourcc, src->crop.width, src->crop.height, width, height, planes)) {
             ERROR("get plane reoslution failed");
             return false;
         }
-
-        copyY(dest, p, image.offsets[0], width[0], height[0], image.pitches[0]);
-        copyUV(dest, p, image.offsets[1], width[1], height[1], image.pitches[1]);
-        copyUV(dest, p, image.offsets[1] + 1, width[1], height[1], image.pitches[1]);
+        for (uint32_t i = 0; i < planes; i++) {
+            copyPlane(dest, p, image.offsets[i], width[i], height[i], image.pitches[i]);
+        }
         unmapImage(*m_display, image);
         return true;
     }
 
 private:
-    static void copyY(std::vector<uint8_t>& v, uint8_t* data, uint32_t offset, uint32_t width,
+    static void copyPlane(std::vector<uint8_t>& v, uint8_t* data, uint32_t offset, uint32_t width,
         uint32_t height, uint32_t pitch)
     {
         data += offset;
         for (uint32_t h = 0; h < height; h++) {
             v.insert(v.end(), data, data + width);
-            data += pitch;
-        }
-
-    }
-
-    static void copyUV(std::vector<uint8_t>& v, uint8_t* data, uint32_t offset, uint32_t width,
-        uint32_t height, uint32_t pitch)
-    {
-        data += offset;
-        for (uint32_t h = 0; h < height; h++) {
-            uint8_t* start = data;
-            uint8_t* end = data + width;
-            while (start < end) {
-                v.push_back(*start);
-                start += 2 ;
-            }
             data += pitch;
         }
 
@@ -264,7 +242,6 @@ class DecodeOutputDump : public DecodeOutputFile {
 public:
     DecodeOutputDump(const char* outputFile, const char* inputFile, uint32_t fourcc)
         : DecodeOutputFile(outputFile, inputFile, fourcc)
-        , m_fp(NULL)
     {
     }
     ~DecodeOutputDump();
@@ -277,15 +254,10 @@ private:
     bool isI420Dest();
     std::string getOutputFileName(uint32_t, uint32_t);
     SharedPtr<VppOutput> m_output;
-    //for i420
-    FILE* m_fp;
-    vector<uint8_t> m_data;
 };
 
 DecodeOutputDump::~DecodeOutputDump()
 {
-    if (m_fp)
-        fclose(m_fp);
 }
 
 std::string DecodeOutputDump::getOutputFileName(uint32_t width, uint32_t height)
@@ -309,25 +281,18 @@ std::string DecodeOutputDump::getOutputFileName(uint32_t width, uint32_t height)
 
 bool DecodeOutputDump::setVideoSize(uint32_t width, uint32_t height)
 {
-    if (!m_output && !m_fp) {
+    if (!m_output) {
         std::string name = getOutputFileName(width, height);
-        if (isI420Dest()) {
-            m_fp = fopen(name.c_str(), "wb");
-            if (!m_fp)
-                return false;
+        m_output = VppOutput::create(name.c_str(), m_destFourcc, width, height);
+        SharedPtr<VppOutputFile> outputFile = std::tr1::dynamic_pointer_cast<VppOutputFile>(m_output);
+        if (!outputFile) {
+            ERROR("maybe you set a wrong extension");
+            return false;
         }
-        else {
-            m_output = VppOutput::create(name.c_str(), m_destFourcc, width, height);
-            SharedPtr<VppOutputFile> outputFile = std::tr1::dynamic_pointer_cast<VppOutputFile>(m_output);
-            if (!outputFile) {
-                ERROR("maybe you set a wrong extension");
-                return false;
-            }
-            SharedPtr<FrameWriter> writer(new VaapiFrameWriter(m_vaDisplay));
-            if (!outputFile->config(writer)) {
-                ERROR("config writer failed");
-                return false;
-            }
+        SharedPtr<FrameWriter> writer(new VaapiFrameWriter(m_vaDisplay));
+        if (!outputFile->config(writer)) {
+            ERROR("config writer failed");
+            return false;
         }
     }
     return DecodeOutputFile::setVideoSize(width, height);
@@ -342,11 +307,6 @@ bool DecodeOutputDump::output(const SharedPtr<VideoFrame>& frame)
 {
     if (!setVideoSize(frame->crop.width, frame->crop.height))
         return false;
-    if (isI420Dest()) {
-        if (!m_convert->convert(m_data, frame))
-            return false;
-        return fwrite(&m_data[0], 1, m_data.size(), m_fp) == m_data.size();
-    }
     SharedPtr<VideoFrame> dest = m_convert->convert(frame);
     return m_output->output(dest);
 }
