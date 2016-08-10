@@ -167,43 +167,49 @@ EncodeOutput::~EncodeOutput()
         fclose(m_fp);
 }
 
-EncodeOutput* EncodeOutput::create(const char* outputFileName, int width , int height)
+EncodeOutput* EncodeOutput::create(const char* outputFileName, int width,
+                                   int height, const char* codecName)
 {
-    EncodeOutput * output = NULL;
-    if(outputFileName==NULL)
+    EncodeOutput* output = NULL;
+    if (outputFileName == NULL)
         return NULL;
-    const char *ext = strrchr(outputFileName,'.');
-    if(ext==NULL)
+    const char* ext = strrchr(outputFileName, '.');
+    std::string codec(""); // needed for strcasecmp to work
+    if (!ext && !codecName)
         return NULL;
-    ext++;//h264;264;jsv;avc;26l;jvt;ivf
-    if(strcasecmp(ext,"h264")==0 ||
-        strcasecmp(ext,"264")==0 ||
-        strcasecmp(ext,"jsv")==0 ||
-        strcasecmp(ext,"avc")==0 ||
-        strcasecmp(ext,"26l")==0 ||
-        strcasecmp(ext,"jvt")==0 ) {
-            output = new EncodeOutputH264();
+    ext++;
+
+    if (codecName)
+        codec.assign(codecName);
+
+    if (!strcasecmp("AVC", codec.c_str()) || !strcasecmp(ext, "h264")
+        || !strcasecmp(ext, "264") || !strcasecmp(ext, "jsv")
+        || !strcasecmp(ext, "avc") || !strcasecmp(ext, "26l")
+        || !strcasecmp(ext, "jvt")) {
+        output = new EncodeOutputH264();
     }
-    else if((strcasecmp(ext,"ivf")==0) ||
-            (strcasecmp(ext,"vp8")==0)) {
-            output = new EncodeOutputVP8();
+    else if (!strcasecmp("VP8", codec.c_str())
+             || (!strcasecmp("VP8", codec.c_str()) && !strcasecmp(ext, "ivf"))
+             || !strcasecmp(ext, "vp8")) {
+        output = new EncodeOutputVP8();
     }
-    else if((strcasecmp(ext,"vp9")==0)) {
-            output = new EncodeOutputVP9();
+    else if (!strcasecmp("VP9", codec.c_str())
+             || (!strcasecmp("VP9", codec.c_str()) && !strcasecmp(ext, "ivf"))
+             || !strcasecmp(ext, "vp9")) {
+        output = new EncodeOutputVP9();
     }
-    else if((strcasecmp(ext,"jpg")==0) ||
-               (strcasecmp(ext,"jpeg")==0)) {
-               output = new EncodeStreamOutputJpeg();
-   }
-    else if((strcasecmp(ext,"h265")==0) ||
-               (strcasecmp(ext,"265")==0) ||
-               (strcasecmp(ext,"hevc")==0)) {
-               output = new EncodeOutputHEVC();
+    else if (!strcasecmp("JPEG", codec.c_str()) || !strcasecmp(ext, "jpg")
+             || !strcasecmp(ext, "jpeg")) {
+        output = new EncodeStreamOutputJpeg();
+    }
+    else if (!strcasecmp("HEVC", codec.c_str()) || !strcasecmp(ext, "h265")
+             || !strcasecmp(ext, "265") || !strcasecmp(ext, "hevc")) {
+        output = new EncodeOutputHEVC();
     }
     else
         return NULL;
 
-    if(!output->init(outputFileName, width, height)) {
+    if (!output->init(outputFileName, width, height)) {
         delete output;
         return NULL;
     }

@@ -134,7 +134,8 @@ class EncodeOutput {
 public:
     EncodeOutput();
     virtual ~EncodeOutput();
-    static  EncodeOutput* create(const char* outputFileName, int width , int height);
+    static EncodeOutput* create(const char* outputFileName, int width,
+                                int height, const char* codecName = NULL);
     virtual bool write(void* data, int size);
     virtual const char* getMimeType() = 0;
 protected:
@@ -153,10 +154,10 @@ public:
     ~EncodeOutputVPX();
     virtual const char* getMimeType() = 0;
     virtual bool write(void* data, int size);
-    void setFourcc(uint32_t fourcc) {m_fourcc = fourcc;};
-    uint32_t getFourcc() {return m_fourcc;};
 protected:
     virtual bool init(const char* outputFileName, int width , int height);
+    uint32_t getFourcc() {return m_fourcc;};
+    void setFourcc(uint32_t fourcc) {m_fourcc = fourcc;};
 private:
     void getIVFFileHeader(uint8_t *header, int width, int height);
     int m_frameCount;
@@ -167,14 +168,12 @@ private:
 class EncodeOutputVP8 : public EncodeOutputVPX {
 public:
     EncodeOutputVP8();
-    ~EncodeOutputVP8(){};
     virtual const char* getMimeType();
 };
 
 class EncodeOutputVP9 : public EncodeOutputVPX {
 public:
     EncodeOutputVP9();
-    ~EncodeOutputVP9(){};
     virtual const char* getMimeType();
 };
 
