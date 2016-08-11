@@ -60,8 +60,8 @@ static void print_help(const char* app)
     printf("   -o <coded file> optional\n");
     printf("   -b <bitrate: kbps> optional\n");
     printf("   -f <frame rate> optional\n");
-    printf("   -c <codec: HEVC|AVC|VP8|JPEG> Note: not support now\n");
-    printf("   -s <fourcc: NV12|IYUV|YV12|P010|I010> Note: not support now\n");
+    printf("   -c <codec: HEVC|AVC|VP8|JPEG> optional\n");
+    printf("   -s <fourcc: NV12|IYUV|YV12|P010|I010>\n");
     printf("   -N <number of frames to encode(camera default 50), useful for camera>\n");
     printf("   --qp <initial qp> optional\n");
     printf("   --rcmode <CBR|CQP> optional\n");
@@ -69,7 +69,7 @@ static void print_help(const char* app)
     printf("   --intraperiod <Intra frame period (default 30)> optional\n");
     printf("   --refnum <number of referece frames(default 1)> optional\n");
     printf("   --idrinterval <AVC/HEVC IDR frame interval (default 0)> optional\n");
-    printf("   --bitdepth <bitdepth:8/10> Note: 10bit only for HEVC\n");
+    printf("   --bitdepth <bitdepth:8/10> Note: default is 8 bit,10bit only for HEVC\n");
 }
 
 static VideoRateControl string_to_rc_mode(char *str)

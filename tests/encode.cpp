@@ -61,7 +61,7 @@ int main(int argc, char** argv)
     videoHeight = input->getHeight();
 
     if(codec != NULL){
-        output = EncodeOutput::create(codec,videoWidth, videoHeight);
+        output = EncodeOutput::create(outputFileName, codec,videoWidth, videoHeight);
     }else{
         output = EncodeOutput::create(outputFileName, videoWidth, videoHeight);
     }
