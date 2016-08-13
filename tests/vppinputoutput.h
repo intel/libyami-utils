@@ -18,6 +18,7 @@
 
 #include "common/log.h"
 #include "common/utils.h"
+#include "common/VaapiUtils.h"
 #include "common/videopool.h"
 #include "VideoCommonDefs.h"
 
@@ -91,13 +92,9 @@ public:
         attrib.value.type = VAGenericValueTypeInteger;
         attrib.value.value.i = fourcc;
         uint32_t rtformat;
-        if (fourcc == VA_FOURCC_BGRX
-            || fourcc == VA_FOURCC_BGRA) {
-            rtformat = VA_RT_FORMAT_RGB32;
-            ERROR("rgb32");
-        } else {
-            rtformat = VA_RT_FORMAT_YUV420;
-        }
+        rtformat = getRtFormat(fourcc);
+        if (!rtformat)
+            return false;
         VAStatus status = vaCreateSurfaces(*m_display, rtformat, width, height,
                                            &m_surfaces[0], m_surfaces.size(),&attrib, 1);
         if (status != VA_STATUS_SUCCESS) {

@@ -247,12 +247,12 @@ public:
     ~DecodeOutputDump();
 
 protected:
-    bool setVideoSize(uint32_t width, uint32_t height);
     bool output(const SharedPtr<VideoFrame>& frame);
-
 private:
+    bool initOutput(const SharedPtr<VideoFrame>& frame);
+    void resetConvert(uint32_t fourcc);
     bool isI420Dest();
-    std::string getOutputFileName(uint32_t, uint32_t);
+    std::string getOutputFileName(uint32_t width, uint32_t height, uint32_t fourcc);
     SharedPtr<VppOutput> m_output;
 };
 
@@ -260,12 +260,14 @@ DecodeOutputDump::~DecodeOutputDump()
 {
 }
 
-std::string DecodeOutputDump::getOutputFileName(uint32_t width, uint32_t height)
+std::string DecodeOutputDump::getOutputFileName(uint32_t width, uint32_t height, uint32_t fourcc)
 {
     std::ostringstream name;
     struct stat buf;
     int r = stat(m_outputFile, &buf);
     if (r == 0 && buf.st_mode & S_IFDIR) {
+        //If user only assign a directory, we should choose fourcc base on first frame.
+        resetConvert(fourcc);
         const char* baseFileName = m_inputFile;
         const char* s = strrchr(m_inputFile, '/');
         if (s)
@@ -279,10 +281,25 @@ std::string DecodeOutputDump::getOutputFileName(uint32_t width, uint32_t height)
     return name.str();
 }
 
-bool DecodeOutputDump::setVideoSize(uint32_t width, uint32_t height)
+void DecodeOutputDump::resetConvert(uint32_t fourcc)
 {
+    //NV12 convert to I420 to keep old version's behavior
+    //IMC is like YV12 but ffmpeg will output it to I420. We convert it to I420 too.
+    if (fourcc == YAMI_FOURCC_NV12 || fourcc == YAMI_FOURCC_IMC3) {
+        m_destFourcc = YAMI_FOURCC_I420;
+    }
+    else {
+        m_destFourcc = fourcc;
+    }
+    m_convert.reset(new ColorConvert(m_vaDisplay, m_destFourcc));
+}
+
+bool DecodeOutputDump::initOutput(const SharedPtr<VideoFrame>& frame)
+{
+    uint32_t width = frame->crop.width;
+    uint32_t height = frame->crop.height;
     if (!m_output) {
-        std::string name = getOutputFileName(width, height);
+        std::string name = getOutputFileName(width, height, frame->fourcc);
         m_output = VppOutput::create(name.c_str(), m_destFourcc, width, height);
         SharedPtr<VppOutputFile> outputFile = std::tr1::dynamic_pointer_cast<VppOutputFile>(m_output);
         if (!outputFile) {
@@ -305,7 +322,7 @@ bool DecodeOutputDump::isI420Dest()
 
 bool DecodeOutputDump::output(const SharedPtr<VideoFrame>& frame)
 {
-    if (!setVideoSize(frame->crop.width, frame->crop.height))
+    if (!initOutput(frame))
         return false;
     SharedPtr<VideoFrame> dest = m_convert->convert(frame);
     return m_output->output(dest);
