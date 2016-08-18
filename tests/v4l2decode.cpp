@@ -36,6 +36,8 @@
 #if ANDROID
 #include <gui/SurfaceComposerClient.h>
 #include <va/va_android.h>
+#elif __ENABLE_WAYLAND__
+#include <wayland-client.h>
 #else
 #include "./egl/gles2_help.h"
 #endif
@@ -200,15 +202,12 @@ static std::vector<uint8_t*> inputFrames;
 static std::vector<struct RawFrameData> rawOutputFrames;
 
 static FILE* outfp = NULL;
-#ifndef ANDROID
+
+#if (!defined(ANDROID) && !defined(__ENABLE_WAYLAND__))
 static Display * x11Display = NULL;
 static Window x11Window = 0;
-#endif
-#ifndef ANDROID
 static EGLContextType *eglContext = NULL;
 static std::vector<EGLImageKHR> eglImages;
-#endif
-#ifndef ANDROID
 static std::vector<GLuint> textureIds;
 #endif
 static bool isReadEOS=false;
@@ -330,6 +329,154 @@ static bool displayOneVideoFrameAndroid(int32_t fd, int32_t index)
 
     return true;
 }
+
+#elif __ENABLE_WAYLAND__
+struct display {
+    SharedPtr<wl_display>        display;
+    SharedPtr<wl_compositor>     compositor;
+    SharedPtr<wl_shell>          shell;
+    SharedPtr<wl_shell_surface>  shell_surface;
+    SharedPtr<wl_surface>        surface;
+};
+
+struct bufstatus {
+    bool redrawPending;
+    struct wl_buffer *buffer;
+};
+
+static struct bufstatus redrawStatus;
+static struct display waylandDisplay;
+
+void registryHandle(
+    void                    *data,
+    struct wl_registry      *registry,
+    uint32_t                id,
+    const char              *interface,
+    uint32_t                version
+)
+{
+    struct display * d = (struct display * )data;
+
+    if (strcmp(interface, "wl_compositor") == 0)
+        d->compositor.reset((struct wl_compositor *)wl_registry_bind(registry, id,
+                                                   &wl_compositor_interface, 1), wl_compositor_destroy);
+    else if (strcmp(interface, "wl_shell") == 0)
+        d->shell.reset((struct wl_shell *)wl_registry_bind(registry, id,
+	                                               &wl_shell_interface, 1), wl_shell_destroy);
+}
+
+void frameRedrawCallback(void *data,
+	                                       struct wl_callback *callback, uint32_t time)
+{
+    struct bufstatus *redrawstatus = (struct bufstatus *)data;
+    redrawstatus->redrawPending = false;
+    if (redrawstatus->buffer)
+        wl_buffer_destroy (redrawstatus->buffer);
+    wl_callback_destroy(callback);
+}
+
+static struct wl_callback_listener frameCallbackListener = {frameRedrawCallback};
+
+bool ensureWindow(unsigned int width, unsigned int height)
+{
+    struct display * const d = &waylandDisplay;
+
+    if (!d->surface) {
+        d->surface.reset(wl_compositor_create_surface(d->compositor.get()), wl_surface_destroy);
+        if (!d->surface)
+            return false;
+    }
+
+    if (!d->shell_surface) {
+        d->shell_surface.reset(wl_shell_get_shell_surface(d->shell.get(), d->surface.get()),
+                                                                       wl_shell_surface_destroy);
+        if (!d->shell_surface)
+            return false;
+        wl_shell_surface_set_toplevel(d->shell_surface.get());
+    }
+    return true;
+}
+
+bool createWaylandDisplay()
+{
+    struct display *d = &waylandDisplay;
+    struct wl_registry_listener registry_listener = {
+        registryHandle,
+        NULL,
+    };
+
+    d->display.reset(wl_display_connect(NULL), wl_display_disconnect);
+    if (!d->display) {
+        return false;
+    }
+    wl_display_set_user_data(d->display.get(), d);
+    struct wl_registry *registry = wl_display_get_registry(d->display.get());
+    wl_registry_add_listener(registry, &registry_listener, d);
+    wl_display_dispatch(d->display.get());
+    redrawStatus.redrawPending = false;
+    return true;
+}
+
+bool vaPutSurfaceWayland(struct wl_buffer *buffer,
+                                              const VARectangle *srcRect,
+                                              const VARectangle *dstRect)
+{
+    struct wl_callback *callback;
+    struct display * const d = &waylandDisplay;
+
+    if (redrawStatus.redrawPending) {
+        wl_display_flush(d->display.get());
+        while (redrawStatus.redrawPending) {
+            wl_display_dispatch(d->display.get());
+        }
+    }
+
+    if (!ensureWindow(dstRect->width, dstRect->height))
+        return false;
+
+    wl_surface_attach(d->surface.get(), buffer, 0, 0);
+    wl_surface_damage(d->surface.get(), dstRect->x,
+		dstRect->y, dstRect->width, dstRect->height);
+    wl_display_flush(d->display.get());
+    redrawStatus.buffer = buffer;
+    redrawStatus.redrawPending = true;
+    callback = wl_surface_frame(d->surface.get());
+    wl_callback_add_listener(callback, &frameCallbackListener,&redrawStatus);
+    wl_surface_commit(d->surface.get());
+    return true;
+}
+
+bool output(struct wl_buffer *buffer)
+{
+    VARectangle srcRect, dstRect;
+    if (!ensureWindow(videoWidth, videoHeight))
+        return false;
+
+    srcRect.x = 0;
+    srcRect.y = 0;
+    srcRect.width  = videoWidth;
+    srcRect.height = videoHeight;
+
+    dstRect.x = 0;
+    dstRect.y = 0;
+    dstRect.width  = videoWidth;
+    dstRect.height = videoHeight;
+    return vaPutSurfaceWayland(buffer, &srcRect, &dstRect);
+}
+
+static bool displayOneVideoFrameWayland(int32_t fd, struct v4l2_buffer  *buf)
+{
+    int32_t ioctlRet = -1;
+    struct v4l2_buffer buffer;
+
+    output((struct wl_buffer *)(buf->m.userptr));
+    memset(&buffer, 0, sizeof(buffer));
+    buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+    buffer.index = (buf->index) ? (buf->index - 1): (outputQueueCapacity - 1);
+    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_QBUF, &buffer);
+    ASSERT(ioctlRet != -1);
+    return true;
+}
 #else
 bool displayOneVideoFrameEGL(int32_t fd, int32_t index)
 {
@@ -369,6 +516,8 @@ bool takeOneOutputFrame(int fd, int index = -1/* if index is not -1, simple enqu
         renderFrameCount++;
 #ifdef ANDROID
         ret = displayOneVideoFrameAndroid(fd, buf.index);
+#elif __ENABLE_WAYLAND__
+        ret = displayOneVideoFrameWayland(fd, &buf);
 #else
         if (IS_DMA_BUF() || IS_DRM_NAME())
             ret = displayOneVideoFrameEGL(fd, buf.index);
@@ -382,8 +531,7 @@ bool takeOneOutputFrame(int fd, int index = -1/* if index is not -1, simple enqu
     } else {
         buf.index = index;
     }
-
-#ifndef ANDROID
+#if (!defined(ANDROID) && !defined(__ENABLE_WAYLAND__))
     ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_QBUF, &buf);
     ASSERT(ioctlRet != -1);
 #endif
@@ -434,7 +582,7 @@ int main(int argc, char** argv)
     int32_t ioctlRet = -1;
     YamiMediaCodec::CalcFps calcFps;
 
-#if __ENABLE_X11__
+#if (defined (__ENABLE_X11__) && !defined(__ENABLE_WAYLAND__))
     XInitThreads();
 #endif
 
@@ -478,8 +626,17 @@ int main(int argc, char** argv)
     // open device
     fd = SIMULATE_V4L2_OP(Open)("decoder", 0);
     ASSERT(fd!=-1);
-
-#if __ENABLE_X11__
+#if __ENABLE_WAYLAND__
+    createWaylandDisplay();
+#if __ENABLE_V4L2_OPS__
+    char displayStr[32];
+    sprintf(displayStr, "%" PRIu64 "", (uint64_t)(waylandDisplay.display.get()));
+    ioctlRet = SIMULATE_V4L2_OP(SetParameter)(fd, "wayland-display", displayStr);
+#else
+    ioctlRet = SIMULATE_V4L2_OP(SetWaylandDisplay)(fd, m_waylandDisplay.display.get());
+#endif
+    ASSERT(ioctlRet != -1);
+#elif __ENABLE_X11__
     x11Display = XOpenDisplay(NULL);
     ASSERT(x11Display);
     DEBUG("x11display: %p", x11Display);
@@ -537,7 +694,6 @@ int main(int argc, char** argv)
     }
     ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_S_FMT, &format);
     ASSERT(ioctlRet != -1);
-
     // input port starts as early as possible to decide output frame format
     __u32 type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
     ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_STREAMON, &type);
@@ -642,7 +798,7 @@ int main(int argc, char** argv)
     ASSERT(reqbufs.count>0);
     outputQueueCapacity = reqbufs.count;
 
-#if __ENABLE_X11__
+#if (defined (__ENABLE_X11__) && !defined(__ENABLE_WAYLAND__))
     if (!IS_RAW_DATA()) {
         x11Window = XCreateSimpleWindow(x11Display, DefaultRootWindow(x11Display)
             , 0, 0, videoWidth, videoHeight, 0, 0
@@ -651,8 +807,7 @@ int main(int argc, char** argv)
         textureIds.resize(outputQueueCapacity);
     }
 #endif
-
-#ifndef ANDROID
+#if (!defined(ANDROID) && !defined(__ENABLE_WAYLAND__))
     if (IS_RAW_DATA()) {
         rawOutputFrames.resize(outputQueueCapacity);
         for (i=0; i<outputQueueCapacity; i++) {
@@ -715,7 +870,17 @@ int main(int argc, char** argv)
         }
     }
 #endif
-
+#if __ENABLE_WAYLAND__
+    struct v4l2_buffer buffer;
+    //queue buffs
+    for (uint32_t i = 0; i < outputQueueCapacity; i++) {
+        memset(&buffer, 0, sizeof(buffer));
+        buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+        buffer.index = i;
+        ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_QBUF, &buffer);
+        ASSERT(ioctlRet != -1);
+    }
+#else
 #ifndef ANDROID
     // feed output frames first
     for (i=0; i<outputQueueCapacity; i++) {
@@ -766,7 +931,7 @@ int main(int argc, char** argv)
         }
     }
 #endif
-
+#endif
     // output port starts as late as possible to adopt user provide output buffer
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
     ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_STREAMON, &type);
@@ -823,16 +988,10 @@ int main(int argc, char** argv)
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
     ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_STREAMOFF, &type);
     ASSERT(ioctlRet != -1);
-
-#ifndef ANDROID
+#if (!defined(ANDROID) && !defined(__ENABLE_WAYLAND__))
     if(textureIds.size())
         glDeleteTextures(textureIds.size(), &textureIds[0]);
     ASSERT(glGetError() == GL_NO_ERROR);
-#endif
-
-#ifdef ANDROID
-    //TODO, some resources need to destroy?
-#else
     for (i=0; i<eglImages.size(); i++) {
         destroyImage(eglContext->eglContext.display, eglImages[i]);
     }
@@ -862,7 +1021,7 @@ int main(int argc, char** argv)
     if (outfp)
         fclose(outfp);
 
-#if __ENABLE_X11__
+#if (defined (__ENABLE_X11__) && !defined(__ENABLE_WAYLAND__))
     if (x11Display && x11Window)
         XDestroyWindow(x11Display, x11Window);
     if (x11Display)
