@@ -22,7 +22,6 @@
 
 #include "vppinputoutput.h"
 using std::string;
-//#include "yamitranscodehelp.h"
 
 class EncodeParams
 {
@@ -70,7 +69,9 @@ public:
     virtual ~VppOutputEncode(){}
     bool config(NativeDisplay& nativeDisplay, const EncodeParams* encParam = NULL);
 protected:
-    virtual bool init(const char* outputFileName, uint32_t fourcc, int width, int height);
+    virtual bool init(const char* outputFileName, uint32_t fourcc, int width,
+                      int height, const char* codecName);
+
 private:
     void initOuputBuffer();
     const char* m_mime;

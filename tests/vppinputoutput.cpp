@@ -161,7 +161,9 @@ VppOutput::VppOutput()
 {
 }
 
-SharedPtr<VppOutput> VppOutput::create(const char* outputFileName, uint32_t fourcc, int width, int height)
+SharedPtr<VppOutput> VppOutput::create(const char* outputFileName,
+                                       uint32_t fourcc, int width, int height,
+                                       const char* codecName)
 {
     SharedPtr<VppOutput> output;
     if (!outputFileName) {
@@ -169,12 +171,12 @@ SharedPtr<VppOutput> VppOutput::create(const char* outputFileName, uint32_t four
         return output;
     }
     output.reset(new VppOutputEncode);
-    if (output->init(outputFileName, fourcc, width, height))
+    if (output->init(outputFileName, fourcc, width, height, codecName))
         return output;
     output.reset(new VppOutputFile);
-    if (output->init(outputFileName, fourcc, width, height))
+    if (output->init(outputFileName, fourcc, width, height, codecName))
         return output;
-    ERROR("can't open %s, wroing extension?",outputFileName);
+    ERROR("can't open %s, wrong extension?",outputFileName);
     output.reset();
     return output;
 }
@@ -188,8 +190,8 @@ bool VppOutput::getFormat(uint32_t& fourcc, int& width, int& height)
     return true;
 }
 
-
-bool VppOutputFile::init(const char* outputFileName, uint32_t fourcc, int width, int height)
+bool VppOutputFile::init(const char* outputFileName, uint32_t fourcc, int width,
+                         int height, const char* /*codecName*/)
 {
     if (!outputFileName) {
         ERROR("output file name is null");

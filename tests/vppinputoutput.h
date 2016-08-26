@@ -274,14 +274,18 @@ protected:
 class VppOutput
 {
 public:
-    static SharedPtr<VppOutput>
-        create(const char* outputFileName, uint32_t fourcc = 0, int width = 0, int height = 0);
+    static SharedPtr<VppOutput> create(const char* outputFileName,
+                                       uint32_t fourcc = 0, int width = 0,
+                                       int height = 0,
+                                       const char* codecName = NULL);
     bool getFormat(uint32_t& fourcc, int& width, int& height);
     virtual bool output(const SharedPtr<VideoFrame>& frame) = 0;
     VppOutput();
     virtual ~VppOutput(){}
 protected:
-    virtual bool init(const char* outputFileName, uint32_t fourcc, int width, int height) = 0;
+    virtual bool init(const char* outputFileName, uint32_t fourcc, int width,
+                      int height, const char* codecName)
+        = 0;
     uint32_t m_fourcc;
     int m_width;
     int m_height;
@@ -297,7 +301,9 @@ public:
     virtual ~VppOutputFile();
     VppOutputFile();
 protected:
-    bool init(const char* outputFileName, uint32_t fourcc, int width, int height);
+    bool init(const char* outputFileName, uint32_t fourcc, int width,
+              int height, const char* codecName);
+
 private:
     bool write(const SharedPtr<VideoFrame>& frame);
     SharedPtr<FrameWriter> m_writer;

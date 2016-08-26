@@ -28,7 +28,7 @@ EncodeParams::EncodeParams()
     , intraPeriod(30)
     , numRefFrames(1)
     , idrInterval(0)
-    , codec("AVC")
+    , codec("")
     , enableCabac(true)
     , enableDct8x8(false)
     , enableDeblockFilter(true)
@@ -52,9 +52,9 @@ TranscodeParams::TranscodeParams()
     /*nothing to do*/
 }
 
-bool VppOutputEncode::init(const char* outputFileName, uint32_t /*fourcc*/, int width, int height)
+bool VppOutputEncode::init(const char* outputFileName, uint32_t /*fourcc*/,
+                           int width, int height, const char* codecName)
 {
-
     if(!width || !height)
         if (!guessResolution(outputFileName, width, height))
             return false;
@@ -62,7 +62,7 @@ bool VppOutputEncode::init(const char* outputFileName, uint32_t /*fourcc*/, int 
     m_fourcc = VA_FOURCC('N', 'V', '1', '2');
     m_width = width;
     m_height = height;
-    m_output.reset(EncodeOutput::create(outputFileName, m_width, m_height));
+    m_output.reset(EncodeOutput::create(outputFileName, m_width, m_height, codecName));
     return bool(m_output);
 }
 
