@@ -50,6 +50,7 @@ int main(int argc, char** argv)
         return -1;
 
     DEBUG("inputFourcc: %.4s", (char*)(&(inputFourcc)));
+    DEBUG("codec: %.6s", codec);
     input = EncodeInput::create(inputFileName, inputFourcc, videoWidth, videoHeight);
     if (!input) {
         fprintf (stderr, "fail to init input stream\n");
@@ -59,7 +60,12 @@ int main(int argc, char** argv)
     videoWidth = input->getWidth();
     videoHeight = input->getHeight();
 
-    output = EncodeOutput::create(outputFileName, videoWidth, videoHeight);
+    if(codec != NULL){
+        output = EncodeOutput::create(outputFileName, codec,videoWidth, videoHeight);
+    }else{
+        output = EncodeOutput::create(outputFileName, videoWidth, videoHeight);
+    }
+
     if (!output) {
         fprintf (stderr, "fail to init ouput stream\n");
         delete input;
