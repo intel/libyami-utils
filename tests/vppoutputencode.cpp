@@ -36,6 +36,8 @@ EncodeParams::EncodeParams()
     , deblockBetaOffsetDiv2(2)
     , diffQPIP(0)
     , diffQPIB(0)
+    , temporalLayerNum(1)
+    , priorityId(0)
 {
     /*nothing to do*/
 }
@@ -118,6 +120,9 @@ static void setEncodeParam(const SharedPtr<IVideoEncoder>& encoder,
     , "0.2.1"
     , "or enableCabac, enableDct8x8 and enableDeblockFilter will use the default value");
 #endif
+    encVideoParamsAVC.temporalLayerNum = encParam->temporalLayerNum;
+    encVideoParamsAVC.priorityId = encParam->priorityId;
+
     encoder->setParameters(VideoParamsTypeAVC, &encVideoParamsAVC);
 
     VideoConfigAVCStreamFormat streamFormat;

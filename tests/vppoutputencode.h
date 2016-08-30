@@ -45,6 +45,8 @@ public:
     int8_t deblockBetaOffsetDiv2; //same as slice_beta_offset_div2 defined in h264 spec 7.4.3
     int8_t diffQPIP;// P frame qp minus initQP
     int8_t diffQPIB;// B frame qp minus initQP
+    uint32_t temporalLayerNum; // svc-t temporal layer number
+    uint32_t priorityId; // h264 priority_id in prefix nal unit
 };
 
 class TranscodeParams

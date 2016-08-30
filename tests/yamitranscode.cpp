@@ -43,6 +43,7 @@ static void print_help(const char* app)
     printf("   -c <codec: HEVC|AVC|VP8|JPEG>\n");
     printf("   -s <fourcc: I420|NV12|IYUV|YV12>\n");
     printf("   -N <number of frames to encode(camera default 50), useful for camera>\n");
+    printf("   -t <AVC scalability temporal layer number  (default 1)> optional\n");
     printf("   --qp <initial qp> optional\n");
     printf("   --rcmode <CBR|CQP> optional\n");
     printf("   --ipperiod <0 (I frame only) | 1 (I and P frames) | N (I,P and B frames, B frame number is N-1)> optional\n");
@@ -56,6 +57,7 @@ static void print_help(const char* app)
     printf("   --deblockbetadiv2 <AVC Beta offset of debloking filter divided 2 (default 2)> optional\n");
     printf("   --qpip <qp difference between adjacent I/P (default 0)> optional\n");
     printf("   --qpib <qp difference between adjacent I/B (default 0)> optional\n");
+    printf("   --priorityid <AVC priority_id of prefix nal unit (default 0)> optional\n");
 }
 
 static VideoRateControl string_to_rc_mode(char *str)
@@ -91,6 +93,7 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
         {"deblockbetadiv2", required_argument, NULL, 0},
         {"qpip", required_argument, NULL, 0 },
         {"qpib", required_argument, NULL, 0 },
+        {"priorityid", required_argument, NULL, 0 },
         {NULL, no_argument, NULL, 0 }};
     int option_index;
 
@@ -99,7 +102,7 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
         return false;
     }
 
-    while ((opt = getopt_long_only(argc, argv, "W:H:b:f:c:s:i:o:N:h:", long_opts,&option_index)) != -1)
+    while ((opt = getopt_long_only(argc, argv, "W:H:b:f:c:s:i:o:N:h:t:", long_opts,&option_index)) != -1)
     {
         switch (opt) {
         case 'h':
@@ -133,6 +136,9 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
             break;
         case 'N':
             para.frameCount = atoi(optarg);
+            break;
+        case 't':
+            para.m_encParams.temporalLayerNum = atoi(optarg);
             break;
         case 0:
              switch (option_index) {
@@ -174,6 +180,9 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
                     break;
                 case 13:
                     para.m_encParams.diffQPIB = atoi(optarg);
+                    break;
+                case 14:
+                    para.m_encParams.priorityId = atoi(optarg);
                     break;
             }
         }
