@@ -673,6 +673,8 @@ int main(int argc, char** argv)
     memset(&format, 0, sizeof(format));
     format.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
     format.fmt.pix_mp.pixelformat = codecFormat;
+    format.fmt.pix_mp.width = input->getWidth();
+    format.fmt.pix_mp.height = input->getHeight();
     format.fmt.pix_mp.num_planes = 1;
     format.fmt.pix_mp.plane_fmt[0].sizeimage = k_maxInputBufferSize;
     ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_S_FMT, &format);
