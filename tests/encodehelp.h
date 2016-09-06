@@ -19,6 +19,7 @@
 #include <getopt.h>
 #include <Yami.h>
 
+static int referenceMode = 0;
 static int idrInterval = 0;
 static int intraPeriod = 30;
 static int ipPeriod = 1;
@@ -68,6 +69,9 @@ static void print_help(const char* app)
     printf("   --intraperiod <Intra frame period (default 30)> optional\n");
     printf("   --refnum <number of referece frames(default 1)> optional\n");
     printf("   --idrinterval <AVC/HEVC IDR frame interval (default 0)> optional\n");
+    printf("   --refmode <VP9 Reference frames mode (default 0 last(previous), "
+           "gold/alt (previous key frame) | 1 last (previous) gold (one before "
+           "last) alt (one before gold)> optional\n");
 }
 
 static VideoRateControl string_to_rc_mode(char *str)
@@ -96,6 +100,7 @@ static bool process_cmdline(int argc, char *argv[])
         {"intraperiod", required_argument, NULL, 0 },
         {"refnum", required_argument, NULL, 0 },
         {"idrinterval", required_argument, NULL, 0 },
+        {"refmode", required_argument, NULL, 0 },
         {NULL, no_argument, NULL, 0 }};
     int option_index;
 
@@ -158,6 +163,9 @@ static bool process_cmdline(int argc, char *argv[])
                     break;
                 case 6:
                     idrInterval = atoi(optarg);
+                    break;
+                case 7:
+                    referenceMode = atoi(optarg);
                     break;
             }
         }
