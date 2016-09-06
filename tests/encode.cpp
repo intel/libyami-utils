@@ -82,11 +82,21 @@ int main(int argc, char** argv)
     encoder->setParameters(VideoParamsTypeCommon, &encVideoParams);
     // configure AVC encoding parameters
     VideoParamsAVC encVideoParamsAVC;
-    encVideoParamsAVC.size = sizeof(VideoParamsAVC);
-    encoder->getParameters(VideoParamsTypeAVC, &encVideoParamsAVC);
-    encVideoParamsAVC.idrInterval = idrInterval;
-    encVideoParamsAVC.size = sizeof(VideoParamsAVC);
-    encoder->setParameters(VideoParamsTypeAVC, &encVideoParamsAVC);
+    if (!strcmp(output->getMimeType(), YAMI_MIME_H264)) {
+        encVideoParamsAVC.size = sizeof(VideoParamsAVC);
+        encoder->getParameters(VideoParamsTypeAVC, &encVideoParamsAVC);
+        encVideoParamsAVC.idrInterval = idrInterval;
+        encVideoParamsAVC.size = sizeof(VideoParamsAVC);
+        encoder->setParameters(VideoParamsTypeAVC, &encVideoParamsAVC);
+    }
+
+    // configure VP9 encoding parameters
+    VideoParamsVP9 encVideoParamsVP9;
+    if (!strcmp(output->getMimeType(), YAMI_MIME_VP9)) {
+        encoder->getParameters(VideoParamsTypeVP9, &encVideoParamsVP9);
+        encVideoParamsVP9.referenceMode = referenceMode;
+        encoder->setParameters(VideoParamsTypeVP9, &encVideoParamsVP9);
+    }
 
     VideoConfigAVCStreamFormat streamFormat;
     streamFormat.size = sizeof(VideoConfigAVCStreamFormat);
