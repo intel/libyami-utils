@@ -20,7 +20,7 @@
 #include <VideoDecoderHost.h>
 #include "decodeinput.h"
 #include "vppinputoutput.h"
-#include "capi/VideoDecoderCapi.h"
+#include <VideoDecoderCapi.h>
 
 class VppInputDecodeCapi : public VppInput {
 public:

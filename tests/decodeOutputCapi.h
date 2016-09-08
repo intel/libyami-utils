@@ -15,7 +15,7 @@
  */
 
 #include <VideoDecoderDefs.h>
-#include "capi/VideoDecoderCapi.h"
+#include <VideoDecoderCapi.h>
 
 #ifdef __cplusplus
 extern "C" {

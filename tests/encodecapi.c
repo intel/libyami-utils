@@ -24,7 +24,7 @@
 #include <assert.h>
 
 #include "common/log.h"
-#include "capi/VideoEncoderCapi.h"
+#include <VideoEncoderCapi.h>
 #include "encodeInputCapi.h"
 #include <VideoEncoderDefs.h>
 #include "encodehelp.h"
