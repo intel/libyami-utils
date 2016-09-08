@@ -301,7 +301,7 @@ bool DecodeOutputDump::initOutput(const SharedPtr<VideoFrame>& frame)
     if (!m_output) {
         std::string name = getOutputFileName(width, height, frame->fourcc);
         m_output = VppOutput::create(name.c_str(), m_destFourcc, width, height);
-        SharedPtr<VppOutputFile> outputFile = std::tr1::dynamic_pointer_cast<VppOutputFile>(m_output);
+        SharedPtr<VppOutputFile> outputFile = DynamicPointerCast<VppOutputFile>(m_output);
         if (!outputFile) {
             ERROR("maybe you set a wrong extension");
             return false;

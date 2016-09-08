@@ -213,7 +213,7 @@ SharedPtr<VppInput> createInput(TranscodeParams& para, const SharedPtr<VADisplay
         ERROR("creat input failed");
         return input;
     }
-    SharedPtr<VppInputFile> inputFile = std::tr1::dynamic_pointer_cast<VppInputFile>(input);
+    SharedPtr<VppInputFile> inputFile = DynamicPointerCast<VppInputFile>(input);
     if (inputFile) {
         SharedPtr<FrameReader> reader(new VaapiFrameReader(display));
         SharedPtr<FrameAllocator> alloctor(new PooledFrameAllocator(display, 5));
@@ -222,7 +222,7 @@ SharedPtr<VppInput> createInput(TranscodeParams& para, const SharedPtr<VADisplay
             input.reset();
         }
     }
-    SharedPtr<VppInputDecode> inputDecode = std::tr1::dynamic_pointer_cast<VppInputDecode>(input);
+    SharedPtr<VppInputDecode> inputDecode = DynamicPointerCast<VppInputDecode>(input);
     if (inputDecode) {
         NativeDisplay nativeDisplay;
         nativeDisplay.type = NATIVE_DISPLAY_VA;
@@ -240,7 +240,7 @@ SharedPtr<VppInput> createInput(TranscodeParams& para, const SharedPtr<VADisplay
 SharedPtr<VppOutput> createOutput(TranscodeParams& para, const SharedPtr<VADisplay>& display)
 {
     SharedPtr<VppOutput> output = VppOutput::create(para.outputFileName.c_str(), para.fourcc, para.oWidth, para.oHeight);
-    SharedPtr<VppOutputFile> outputFile = std::tr1::dynamic_pointer_cast<VppOutputFile>(output);
+    SharedPtr<VppOutputFile> outputFile = DynamicPointerCast<VppOutputFile>(output);
     if (outputFile) {
         SharedPtr<FrameWriter> writer(new VaapiFrameWriter(display));
         if (!outputFile->config(writer)) {
@@ -249,7 +249,7 @@ SharedPtr<VppOutput> createOutput(TranscodeParams& para, const SharedPtr<VADispl
         }
         return output;
     }
-    SharedPtr<VppOutputEncode> outputEncode = std::tr1::dynamic_pointer_cast<VppOutputEncode>(output);
+    SharedPtr<VppOutputEncode> outputEncode = DynamicPointerCast<VppOutputEncode>(output);
     if (outputEncode) {
         NativeDisplay nativeDisplay;
         nativeDisplay.type = NATIVE_DISPLAY_VA;

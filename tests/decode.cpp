@@ -39,9 +39,9 @@ SharedPtr<VppInput> createInput(DecodeParameter& para, SharedPtr<NativeDisplay>&
         return input;
     }
 #ifdef __ENABLE_CAPI__
-    SharedPtr<VppInputDecodeCapi> inputDecode = std::tr1::dynamic_pointer_cast<VppInputDecodeCapi>(input);
+    SharedPtr<VppInputDecodeCapi> inputDecode = DynamicPointerCast<VppInputDecodeCapi>(input);
 #else
-    SharedPtr<VppInputDecode> inputDecode = std::tr1::dynamic_pointer_cast<VppInputDecode>(input);
+    SharedPtr<VppInputDecode> inputDecode = DynamicPointerCast<VppInputDecode>(input);
 #endif
     if (!inputDecode) {
         input.reset();
