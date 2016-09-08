@@ -19,10 +19,7 @@
 #endif
 
 #include <iostream>
-#include <YamiVersion.h>
-#include <VideoDecoderHost.h>
-#include <VideoEncoderHost.h>
-#include <VideoPostProcessHost.h>
+#include <Yami.h>
 
 using namespace YamiMediaCodec;
 

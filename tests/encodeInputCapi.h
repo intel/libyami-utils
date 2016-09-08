@@ -17,7 +17,7 @@
 #include "config.h"
 #endif
 
-#include <VideoEncoderDefs.h>
+#include <Yami.h>
 
 #ifdef __cplusplus
 extern "C" {

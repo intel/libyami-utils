@@ -17,7 +17,7 @@
 #ifndef __ENCODE_HELP__
 #define __ENCODE_HELP__
 #include <getopt.h>
-#include <VideoEncoderDefs.h>
+#include <Yami.h>
 
 static int idrInterval = 0;
 static int intraPeriod = 30;

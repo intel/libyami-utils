@@ -28,8 +28,7 @@
 #include <X11/Xlib.h>
 #endif
 #include "common/log.h"
-#include <VideoEncoderInterface.h>
-#include <VideoEncoderHost.h>
+#include <Yami.h>
 #include "encodeinput.h"
 #include "encodehelp.h"
 

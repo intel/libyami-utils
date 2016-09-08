@@ -17,10 +17,9 @@
 #ifndef vppinputdecodecapi_h
 #define vppinputdecodecapi_h
 
-#include <VideoDecoderHost.h>
 #include "decodeinput.h"
 #include "vppinputoutput.h"
-#include <VideoDecoderCapi.h>
+#include <YamiC.h>
 
 class VppInputDecodeCapi : public VppInput {
 public:

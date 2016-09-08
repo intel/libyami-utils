@@ -21,8 +21,7 @@
 #endif
 
 #include <stdio.h>
-#include <VideoEncoderDefs.h>
-#include <VideoEncoderInterface.h>
+#include <Yami.h>
 #include "common/NonCopyable.h"
 #include <vector>
 #if ANDROID

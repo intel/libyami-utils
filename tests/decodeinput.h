@@ -18,8 +18,7 @@
 
 #include <stdio.h>
 #include <string>
-#include <VideoDecoderDefs.h>
-#include <VideoDecoderInterface.h>
+#include <Yami.h>
 
 using std::string;
 class DecodeInput {

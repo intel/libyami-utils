@@ -18,7 +18,7 @@
 
 #include <stdint.h>
 
-#include <VideoCommonDefs.h>
+#include <Yami.h>
 
 #ifndef VA_FOURCC_I420
 #define VA_FOURCC_I420 VA_FOURCC('I','4','2','0')

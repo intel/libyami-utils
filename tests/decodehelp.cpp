@@ -27,7 +27,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
-#include <VideoCommonDefs.h>
+#include <Yami.h>
 #include <getopt.h>
 
 using namespace YamiMediaCodec;

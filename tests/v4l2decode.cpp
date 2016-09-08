@@ -41,7 +41,7 @@
 #else
 #include "./egl/gles2_help.h"
 #endif
-#include <VideoCommonDefs.h>
+#include <Yami.h>
 
 #ifndef V4L2_EVENT_RESOLUTION_CHANGE
     #define V4L2_EVENT_RESOLUTION_CHANGE 5

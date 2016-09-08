@@ -20,7 +20,7 @@
 #include "common/utils.h"
 #include "common/VaapiUtils.h"
 #include "common/videopool.h"
-#include <VideoCommonDefs.h>
+#include <Yami.h>
 
 #include <stdio.h>
 #include <va/va.h>

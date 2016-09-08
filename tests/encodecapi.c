@@ -24,9 +24,8 @@
 #include <assert.h>
 
 #include "common/log.h"
-#include <VideoEncoderCapi.h>
+#include <YamiC.h>
 #include "encodeInputCapi.h"
-#include <VideoEncoderDefs.h>
 #include "encodehelp.h"
 
 int main(int argc, char** argv)

@@ -19,7 +19,7 @@
 #include "NonCopyable.h"
 #include "lock.h"
 
-#include <VideoCommonDefs.h>
+#include <Yami.h>
 
 namespace YamiMediaCodec{
 

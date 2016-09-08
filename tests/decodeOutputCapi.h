@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-#include <VideoDecoderDefs.h>
-#include <VideoDecoderCapi.h>
+#include <YamiC.h>
 
 #ifdef __cplusplus
 extern "C" {

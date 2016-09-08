@@ -16,13 +16,12 @@
 
 #include "vppinputoutput.h"
 #include "decodeinput.h"
-#include <VideoDecoderHost.h>
+#include <Yami.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
 
-#include <VideoPostProcessHost.h>
 #include <gui/Surface.h>
 #include <gui/SurfaceComposerClient.h>
 #include <gui/ISurfaceComposer.h>

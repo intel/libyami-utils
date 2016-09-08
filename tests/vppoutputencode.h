@@ -15,7 +15,7 @@
  */
 #ifndef vppoutputencode_h
 #define vppoutputencode_h
-#include <VideoEncoderHost.h>
+#include <Yami.h>
 #include "encodeinput.h"
 #include <string>
 #include <vector>

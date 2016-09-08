@@ -17,7 +17,7 @@
 #define videopool_h
 #include "common/lock.h"
 #include <deque>
-#include <VideoCommonDefs.h>
+#include <Yami.h>
 
 namespace YamiMediaCodec{
 

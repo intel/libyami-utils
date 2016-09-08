@@ -28,7 +28,7 @@
 #include <vector>
 #include <deque>
 #include <string.h>
-#include <VideoPostProcessHost.h>
+#include <Yami.h>
 
 
 using namespace YamiMediaCodec;

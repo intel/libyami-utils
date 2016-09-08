@@ -21,8 +21,6 @@
 #include "decodeOutputCapi.h"
 #include "decodeoutput.h"
 
-#include <VideoDecoderInterface.h>
-
 using namespace YamiMediaCodec;
 
 DecodeOutputHandler createDecodeOutput(DecodeHandler decoder, int renderMode)

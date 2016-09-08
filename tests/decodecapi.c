@@ -24,7 +24,7 @@
 #ifdef __ENABLE_X11__
 #include <X11/Xlib.h>
 #endif
-#include <VideoDecoderCapi.h>
+#include <YamiC.h>
 #include "decodeInputCapi.h"
 #include "decodeOutputCapi.h"
 #include "decodehelp.h"

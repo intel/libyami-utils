@@ -15,7 +15,7 @@
  */
 #ifndef vppinputdecode_h
 #define vppinputdecode_h
-#include <VideoDecoderHost.h>
+#include <Yami.h>
 #include "decodeinput.h"
 
 #include "vppinputoutput.h"

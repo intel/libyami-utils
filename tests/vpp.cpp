@@ -21,10 +21,7 @@
 #include "vppoutputencode.h"
 #include "encodeinput.h"
 #include "common/log.h"
-#include <VideoEncoderInterface.h>
-#include <VideoEncoderHost.h>
-#include <VideoPostProcessHost.h>
-#include <YamiVersion.h>
+#include <Yami.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
