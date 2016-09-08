@@ -17,7 +17,7 @@
 #ifndef __VIDEO_ENCODER_CAPI_H__
 #define __VIDEO_ENCODER_CAPI_H__
 
-#include "VideoEncoderDefs.h"
+#include <VideoEncoderDefs.h>
 
 #ifdef __cplusplus
 extern "C" {

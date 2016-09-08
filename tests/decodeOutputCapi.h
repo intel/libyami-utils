@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "VideoDecoderDefs.h"
+#include <VideoDecoderDefs.h>
 #include "capi/VideoDecoderCapi.h"
 
 #ifdef __cplusplus

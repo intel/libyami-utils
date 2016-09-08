@@ -18,8 +18,8 @@
 
 #include <stdio.h>
 #include <string>
-#include "VideoDecoderDefs.h"
-#include "VideoDecoderInterface.h"
+#include <VideoDecoderDefs.h>
+#include <VideoDecoderInterface.h>
 
 using std::string;
 class DecodeInput {

@@ -23,8 +23,8 @@
 #include "common/log.h"
 #include "common/common_def.h"
 #include "common/VaapiUtils.h"
-#include "VideoDecoderHost.h"
-#include "VideoPostProcessHost.h"
+#include <VideoDecoderHost.h>
+#include <VideoPostProcessHost.h>
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>

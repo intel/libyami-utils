@@ -18,8 +18,8 @@
 #define decodeoutput_h
 
 #include "vppinputoutput.h"
-#include "VideoPostProcessHost.h"
-#include "VideoCommonDefs.h"
+#include <VideoPostProcessHost.h>
+#include <VideoCommonDefs.h>
 
 #include <string>
 #include <cassert>

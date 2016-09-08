@@ -17,7 +17,7 @@
 #include "config.h"
 #endif
 
-#include "VideoDecoderDefs.h"
+#include <VideoDecoderDefs.h>
 
 #ifdef __cplusplus
 extern "C" {

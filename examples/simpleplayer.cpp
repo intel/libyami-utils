@@ -19,7 +19,7 @@
 
 #include "decodeinput.h"
 #include "common/log.h"
-#include "VideoDecoderHost.h"
+#include <VideoDecoderHost.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>

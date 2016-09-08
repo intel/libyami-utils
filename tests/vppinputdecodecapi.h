@@ -17,7 +17,7 @@
 #ifndef vppinputdecodecapi_h
 #define vppinputdecodecapi_h
 
-#include "VideoDecoderHost.h"
+#include <VideoDecoderHost.h>
 #include "decodeinput.h"
 #include "vppinputoutput.h"
 #include "capi/VideoDecoderCapi.h"

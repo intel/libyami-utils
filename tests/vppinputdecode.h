@@ -15,7 +15,7 @@
  */
 #ifndef vppinputdecode_h
 #define vppinputdecode_h
-#include "VideoDecoderHost.h"
+#include <VideoDecoderHost.h>
 #include "decodeinput.h"
 
 #include "vppinputoutput.h"

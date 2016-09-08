@@ -28,8 +28,8 @@
 #include <X11/Xlib.h>
 #endif
 #include "common/log.h"
-#include "VideoEncoderInterface.h"
-#include "VideoEncoderHost.h"
+#include <VideoEncoderInterface.h>
+#include <VideoEncoderHost.h>
 #include "encodeinput.h"
 #include "encodehelp.h"
 

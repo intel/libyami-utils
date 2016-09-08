@@ -19,7 +19,7 @@
 #include "decodeinput.h"
 #include "encodeinput.h"
 
-#include "VideoDecoderHost.h"
+#include <VideoDecoderHost.h>
 #include <map>
 
 using namespace YamiMediaCodec;

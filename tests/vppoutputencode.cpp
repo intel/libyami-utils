@@ -17,7 +17,7 @@
 #include "config.h"
 #endif
 #include "vppoutputencode.h"
-#include "YamiVersion.h"
+#include <YamiVersion.h>
 
 EncodeParams::EncodeParams()
     : rcMode(RATE_CONTROL_CQP)

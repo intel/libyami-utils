@@ -26,7 +26,7 @@
 #include "common/log.h"
 #include "capi/VideoEncoderCapi.h"
 #include "encodeInputCapi.h"
-#include "VideoEncoderDefs.h"
+#include <VideoEncoderDefs.h>
 #include "encodehelp.h"
 
 int main(int argc, char** argv)
