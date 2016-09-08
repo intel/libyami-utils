@@ -63,7 +63,7 @@ bool VppOutputEncode::init(const char* outputFileName, uint32_t /*fourcc*/, int 
     m_width = width;
     m_height = height;
     m_output.reset(EncodeOutput::create(outputFileName, m_width, m_height));
-    return m_output;
+    return bool(m_output);
 }
 
 void VppOutputEncode::initOuputBuffer()

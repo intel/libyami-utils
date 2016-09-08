@@ -300,7 +300,7 @@ public:
             return false;
         }
         m_allocator = createAllocator(m_output, m_display, m_cmdParam.m_encParams.ipPeriod);
-        return m_allocator;
+        return bool(m_allocator);
     }
 
     bool run()
