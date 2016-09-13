@@ -515,7 +515,7 @@ SharedPtr<VideoFrame> DrmRenderer::dequeue()
     SharedPtr<VideoFrame> frame;
     while (m_backs.empty())
         m_cond.wait();
-    frame = std::tr1::static_pointer_cast<VideoFrame>(m_backs.front());
+    frame = StaticPointerCast<VideoFrame>(m_backs.front());
     m_backs.pop_front();
     return frame;
 }
@@ -523,7 +523,7 @@ SharedPtr<VideoFrame> DrmRenderer::dequeue()
 bool DrmRenderer::queue(const SharedPtr<VideoFrame>& vframe)
 {
     SharedPtr<DrmFrame> frame =
-        std::tr1::static_pointer_cast<DrmFrame>(vframe);
+        StaticPointerCast<DrmFrame>(vframe);
     if (!frame) {
         ERROR("invalid frame queued");
         return false;
@@ -537,7 +537,7 @@ bool DrmRenderer::queue(const SharedPtr<VideoFrame>& vframe)
 bool DrmRenderer::discard(const SharedPtr<VideoFrame>& vframe)
 {
     SharedPtr<DrmFrame> frame =
-        std::tr1::static_pointer_cast<DrmFrame>(vframe);
+        StaticPointerCast<DrmFrame>(vframe);
     if (!frame) {
         ERROR("invalid frame queued");
         return false;
