@@ -242,7 +242,7 @@ class VppInputFile;
 class VppInput {
 public:
     static SharedPtr<VppInput>
-        create(const char* inputFileName, uint32_t fourcc = 0, int width = 0, int height = 0);
+        create(const char* inputFileName, uint32_t fourcc = 0, int width = 0, int height = 0, bool useCAPI = false);
     virtual bool init(const char* inputFileName = 0, uint32_t fourcc = 0, int width = 0, int height = 0) = 0;
     virtual bool read(SharedPtr<VideoFrame>& frame) = 0;
     int getWidth() { return m_width;}

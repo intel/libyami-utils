@@ -28,6 +28,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <VideoCommonDefs.h>
+#include <getopt.h>
 
 using namespace YamiMediaCodec;
 
@@ -49,19 +50,27 @@ static void printHelp(const char* app)
     printf("      4: texture: export video frame as dma_buf(RGBX) + texutre from dma_buf\n");
     printf("      5: texture: export video frame as dma_buf(NV12) + texture from dma_buf. not implement yet\n");
     printf(" [*] v4l2decode doesn't support the option\n");
+    printf("  --capi: use the codec capi to encode or decode, default(false)\n");
 }
 
 bool processCmdLine(int argc, char** argv, DecodeParameter* parameters)
 {
+    int32_t option_index;
     bool isSetFourcc = false;
     std::string outputFile;
     parameters->renderFrames = UINT_MAX;
     parameters->waitBeforeQuit = 1;
     parameters->renderMode = 1;
     parameters->inputFile = NULL;
+    parameters->useCAPI = false;
+
+    const struct option long_opts[] = {
+        {"help", no_argument, NULL, 'h'},
+        {"capi", no_argument, NULL, 0},
+        {NULL, no_argument, NULL, 0}};
 
     char opt;
-    while ((opt = getopt(argc, argv, "h:m:n:i:f:o:w:?")) != -1) {
+    while ((opt = getopt_long_only(argc, argv, "h:m:n:i:f:o:w:?", long_opts,&option_index)) != -1){
         switch (opt) {
         case 'h':
         case '?':
@@ -91,6 +100,16 @@ bool processCmdLine(int argc, char** argv, DecodeParameter* parameters)
             break;
         case 'o':
             outputFile = optarg;
+            break;
+        case 0:
+            switch (option_index) {
+            case 1:
+                parameters->useCAPI = true;
+                break;
+            default:
+                printHelp(argv[0]);
+                break;
+            }
             break;
         default:
             printHelp(argv[0]);

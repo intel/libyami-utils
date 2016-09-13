@@ -1,10 +1,6 @@
-if ENABLE_CAPI
-bin_PROGRAMS = decodecapi encodecapi
-else
 bin_PROGRAMS = yamidecode yamiencode yamivpp yamitranscode
 if ENABLE_V4L2
 bin_PROGRAMS += v4l2encode v4l2decode
-endif
 endif
 
 AM_CFLAGS = \
@@ -91,21 +87,9 @@ YAMI_VPP_CFLAGS = \
 	$(LIBVA_CFLAGS) \
 	$(NULL)
 
-if ENABLE_CAPI
-CAPI_DECODE_LIBS += $(YAMI_VPP_LIBS)
-decodecapi_LDADD    = $(CAPI_DECODE_LIBS)
-decodecapi_SOURCES  = decode.cpp decodehelp.cpp $(DECODE_INPUT_SOURCES) decodeoutput.cpp vppinputoutput.cpp vppinputdecode.cpp vppoutputencode.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp vppinputdecodecapi.cpp
-if ENABLE_TESTS_GLES
-decodecapi_SOURCES += ../egl/egl_util.c ./egl/gles2_help.c
-endif
-
-encodecapi_LDADD    = $(CAPI_ENCODE_LIBS)
-encodecapi_LDFLAGS  = $(YAMI_STATIC_LDFLAGS)
-encodecapi_SOURCES  = encodecapi.c encodehelp.h encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp encodeInputCapi.cpp $(DECODE_INPUT_SOURCES)
-else
 yamidecode_LDADD    = $(YAMI_VPP_LIBS)
 yamidecode_LDFLAGS  = $(YAMI_VPP_LDFLAGS)
-yamidecode_SOURCES  = decode.cpp decodehelp.cpp $(DECODE_INPUT_SOURCES) decodeoutput.cpp vppinputoutput.cpp vppinputdecode.cpp vppoutputencode.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp
+yamidecode_SOURCES  = decode.cpp decodehelp.cpp $(DECODE_INPUT_SOURCES) decodeoutput.cpp vppinputoutput.cpp vppinputdecode.cpp vppoutputencode.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp vppinputdecodecapi.cpp
 if ENABLE_TESTS_GLES
 yamidecode_SOURCES += ../egl/egl_util.c ./egl/gles2_help.c
 endif
@@ -125,15 +109,14 @@ v4l2decode_LDADD += -ldl
 v4l2encode_LDADD   = $(V4L2_ENCODE_LIBS)
 v4l2encode_LDFLAGS = $(V4L2_ENCODE_LDFLAGS)
 v4l2encode_SOURCES = v4l2encode.cpp encodeinput.h encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp $(DECODE_INPUT_SOURCES)
-endif
 
 yamivpp_LDADD    = $(YAMI_VPP_LIBS)
 yamivpp_LDFLAGS  = $(YAMI_VPP_LDFLAGS)
-yamivpp_SOURCES  = vppinputdecode.cpp vppinputoutput.cpp vppoutputencode.cpp  vpp.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp $(DECODE_INPUT_SOURCES)
+yamivpp_SOURCES  = vppinputdecode.cpp vppinputoutput.cpp vppoutputencode.cpp  vpp.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp $(DECODE_INPUT_SOURCES) vppinputdecodecapi.cpp
 
 yamitranscode_LDADD    = $(YAMI_VPP_LIBS)
 yamitranscode_LDFLAGS  = -pthread $(YAMI_VPP_LDFLAGS)
-yamitranscode_SOURCES  = vppinputdecode.cpp vppinputoutput.cpp vppoutputencode.cpp  yamitranscode.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp $(DECODE_INPUT_SOURCES) vppinputasync.cpp 
+yamitranscode_SOURCES  = vppinputdecode.cpp vppinputoutput.cpp vppoutputencode.cpp  yamitranscode.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp $(DECODE_INPUT_SOURCES) vppinputasync.cpp vppinputdecodecapi.cpp 
 
 bin_PROGRAMS += yamiinfo
 yamiinfo_SOURCES = yamiinfo.cpp

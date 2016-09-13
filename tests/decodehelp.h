@@ -28,6 +28,7 @@ typedef struct DecodeParameter {
     uint32_t renderFrames;
     uint32_t renderFourcc;
     std::string outputFile;
+    bool useCAPI;
 } DecodeParameter;
 
 bool processCmdLine(int argc, char** argv, DecodeParameter* parameters);

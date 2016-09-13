@@ -29,9 +29,7 @@
 #include "vppinputoutput.h"
 #include "vppoutputencode.h"
 #include "vppinputdecode.h"
-#ifdef __ENABLE_CAPI__
 #include "vppinputdecodecapi.h"
-#endif
 using namespace YamiMediaCodec;
 
 #ifndef ANDROID
@@ -60,21 +58,18 @@ SharedPtr<VADisplay> createVADisplay()
 }
 #endif
 
-SharedPtr<VppInput> VppInput::create(const char* inputFileName, uint32_t fourcc, int width, int height)
+SharedPtr<VppInput> VppInput::create(const char* inputFileName, uint32_t fourcc, int width, int height, bool useCAPI)
 {
     SharedPtr<VppInput> input;
     if (!inputFileName)
         return input;
 
-#ifdef __ENABLE_CAPI__
-    input.reset(new VppInputDecodeCapi);
-    if (input->init(inputFileName, fourcc, width, height))
-        return input;
-#else
-    input.reset(new VppInputDecode);
+    if(useCAPI)
+        input.reset(new VppInputDecodeCapi);
+    else
+        input.reset(new VppInputDecode);
     if(input->init(inputFileName, fourcc, width, height))
         return input;
-#endif
     input.reset(new VppInputFile);
     if (input->init(inputFileName, fourcc, width, height))
         return input;

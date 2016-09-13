@@ -17,10 +17,7 @@
 #include "config.h"
 #endif
 
-#ifdef __ENABLE_CAPI__
 #include "vppinputdecodecapi.h"
-#endif
-
 #include "vppinputdecode.h"
 #include "decodeoutput.h"
 #include "decodehelp.h"
@@ -33,26 +30,22 @@
 
 SharedPtr<VppInput> createInput(DecodeParameter& para, SharedPtr<NativeDisplay>& display)
 {
-    SharedPtr<VppInput> input(VppInput::create(para.inputFile, para.renderFourcc, para.width, para.height));
+    SharedPtr<VppInput> input(VppInput::create(para.inputFile, para.renderFourcc, para.width, para.height, para.useCAPI));
     if (!input) {
         fprintf(stderr, "VppInput create failed.\n");
         return input;
     }
-#ifdef __ENABLE_CAPI__
-    SharedPtr<VppInputDecodeCapi> inputDecode = DynamicPointerCast<VppInputDecodeCapi>(input);
-#else
-    SharedPtr<VppInputDecode> inputDecode = DynamicPointerCast<VppInputDecode>(input);
-#endif
-    if (!inputDecode) {
-        input.reset();
-        fprintf(stderr, "createInput failed, cannot convert VppInput to VppInputDecode\n");
-        return input;
+    if(para.useCAPI){
+        SharedPtr<VppInputDecodeCapi> inputDecode = std::tr1::dynamic_pointer_cast<VppInputDecodeCapi>(input);
+        if (inputDecode && inputDecode->config(*display))
+            return input;
+    }else{
+        SharedPtr<VppInputDecode> inputDecode = std::tr1::dynamic_pointer_cast<VppInputDecode>(input);
+        if (inputDecode && inputDecode->config(*display))
+            return input;
     }
-    if (!inputDecode->config(*display)) {
-        input.reset();
-        fprintf(stderr, "VppInputDecode config failed.\n");
-        return input;
-    }
+    input.reset();
+    fprintf(stderr, "VppInputDecode config failed.\n");
     return input;
 }
 
