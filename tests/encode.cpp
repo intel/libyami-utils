@@ -34,6 +34,11 @@
 
 using namespace YamiMediaCodec;
 
+inline bool isVPX(const char* codec)
+{
+    return !strcmp(codec, YAMI_MIME_VP9) || !strcmp(codec, YAMI_MIME_VP8);
+}
+
 int main(int argc, char** argv)
 {
     IVideoEncoder *encoder = NULL;
@@ -131,6 +136,11 @@ int main(int argc, char** argv)
         memset(&inputBuffer, 0, sizeof(inputBuffer));
         if (input->getOneFrameInput(inputBuffer)) {
             inputBuffer.timeStamp = i++;
+
+            if (isVPX(output->getMimeType())
+                && !(encodeFrameCount % intraPeriod))
+                inputBuffer.flags |= VIDEO_FRAME_FLAGS_KEY;
+
             status = encoder->encode(&inputBuffer);
             ASSERT(status == ENCODE_SUCCESS);
             input->recycleOneFrameInput(inputBuffer);
