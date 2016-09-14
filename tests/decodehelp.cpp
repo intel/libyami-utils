@@ -116,6 +116,16 @@ bool processCmdLine(int argc, char** argv, DecodeParameter* parameters)
             break;
         }
     }
+    if (optind < argc) {
+        int indexOpt = optind;
+        printf("unrecognized option: ");
+        while (indexOpt < argc)
+            printf("%s ", argv[indexOpt++]);
+        printf("\n");
+        printHelp(argv[0]);
+        return false;
+    }
+
     if (!parameters->inputFile) {
         fprintf(stderr, "no input media file specified.\n");
         return false;

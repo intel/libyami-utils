@@ -48,9 +48,9 @@ static void print_help(const char* app)
     printf("   --intraperiod <Intra frame period(default 30)> optional\n");
     printf("   --refnum <number of referece frames(default 1)> optional\n");
     printf("   --idrinterval <AVC/HEVC IDR frame interval(default 0)> optional\n");
-    printf("   --enablecabac <AVC is to use CABAC or not in Main Profile (default true)> optional\n");
-    printf("   --enabledct8x8 <AVC is to use DCT8x8 transform or not in High Profile (default false)> optional\n");
-    printf("   --enabledeblockfilter <AVC is to use Deblock filter or not (default true)> optional\n");
+    printf("   --disable-cabac <AVC is to use CABAC or not, for Main and High Profile, default is enabled\n");
+    printf("   --enable-dct8x8 <AVC is to use DCT8x8 or not, for High Profile, default is disabled\n");
+    printf("   --disable-deblock <AVC is to use Deblock or not, default is enabled\n");
     printf("   --deblockalphadiv2 <AVC Alpha offset of debloking filter divided 2 (default 2)> optional\n");
     printf("   --deblockbetadiv2 <AVC Beta offset of debloking filter divided 2 (default 2)> optional\n");
     printf("   --qpip <qp difference between adjacent I/P (default 0)> optional\n");
@@ -84,9 +84,9 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
         {"intraperiod", required_argument, NULL, 0 },
         {"refnum", required_argument, NULL, 0 },
         {"idrinterval", required_argument, NULL, 0 },
-        {"enablecabac", required_argument, NULL, 0},
-        {"enabledct8x8", required_argument, NULL, 0},
-        {"enabledeblockfilter", required_argument, NULL, 0},
+        {"disable-cabac", no_argument, NULL, 0},
+        {"enable-dct8x8", no_argument, NULL, 0},
+        {"disable-deblock", no_argument, NULL, 0},
         {"deblockalphadiv2", required_argument, NULL, 0},
         {"deblockbetadiv2", required_argument, NULL, 0},
         {"qpip", required_argument, NULL, 0 },
@@ -159,13 +159,13 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
                     para.m_encParams.idrInterval = atoi(optarg);
                     break;
                 case 7:
-                    para.m_encParams.enableCabac = strncasecmp(optarg, "false", 5) != 0;
+                    para.m_encParams.enableCabac = false;
                     break;
                 case 8:
-                    para.m_encParams.enableDct8x8 = strncasecmp(optarg, "true", 4) == 0;
+                    para.m_encParams.enableDct8x8 = true;
                     break;
                 case 9:
-                    para.m_encParams.enableDeblockFilter = strncasecmp(optarg, "false", 5) != 0;
+                    para.m_encParams.enableDeblockFilter = false;
                     break;
                 case 10:
                     para.m_encParams.deblockAlphaOffsetDiv2 = atoi(optarg);
@@ -184,6 +184,15 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
                     break;
             }
         }
+    }
+    if (optind < argc) {
+        int indexOpt = optind;
+        printf("unrecognized option: ");
+        while (indexOpt < argc)
+            printf("%s ", argv[indexOpt++]);
+        printf("\n");
+        print_help(argv[0]);
+        return false;
     }
 
     if (para.inputFileName.empty()) {
