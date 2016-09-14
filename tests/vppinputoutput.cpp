@@ -220,6 +220,7 @@ bool VppOutputFile::config(const SharedPtr<FrameWriter>& writer)
     return true;
 }
 
+
 VppOutputFile::~VppOutputFile()
 {
     if (m_fp)

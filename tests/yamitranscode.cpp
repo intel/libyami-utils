@@ -56,6 +56,10 @@ static void print_help(const char* app)
     printf("   --qpip <qp difference between adjacent I/P (default 0)> optional\n");
     printf("   --qpib <qp difference between adjacent I/B (default 0)> optional\n");
     printf("   --priorityid <AVC priority_id of prefix nal unit (default 0)> optional\n");
+    printf("   VP9 encoder specific options:\n");
+    printf("   --refmode <VP9 Reference frames mode (default 0 last(previous), "
+           "gold/alt (previous key frame) | 1 last (previous) gold (one before "
+           "last) alt (one before gold)> optional\n");
 }
 
 static VideoRateControl string_to_rc_mode(char *str)
@@ -92,6 +96,7 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
         {"qpip", required_argument, NULL, 0 },
         {"qpib", required_argument, NULL, 0 },
         {"priorityid", required_argument, NULL, 0 },
+        {"refmode", required_argument, NULL, 0 },
         {NULL, no_argument, NULL, 0 }};
     int option_index;
 
@@ -181,6 +186,9 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
                     break;
                 case 14:
                     para.m_encParams.priorityId = atoi(optarg);
+                    break;
+                case 15:
+                    para.m_encParams.m_encParamsVP9.referenceMode = atoi(optarg);
                     break;
             }
         }
@@ -326,6 +334,7 @@ public:
 #else
             dest = src;
 #endif
+
             if(!m_output->output(dest))
                 break;
             count++;
@@ -345,6 +354,7 @@ private:
         m_vpp.reset(createVideoPostProcess(YAMI_VPP_SCALER), releaseVideoPostProcess);
         return m_vpp->setNativeDisplay(nativeDisplay) == YAMI_SUCCESS;
     }
+
     SharedPtr<VADisplay> m_display;
     SharedPtr<VppInput> m_input;
     SharedPtr<VppOutput> m_output;

@@ -23,8 +23,12 @@
 #include "vppinputoutput.h"
 using std::string;
 
-class EncodeParams
-{
+struct EncodeParamsVP9 {
+    EncodeParamsVP9();
+    uint32_t referenceMode; // Reference mode scheme, <0 | 1>
+};
+
+class EncodeParams {
 public:
     EncodeParams();
 
@@ -46,6 +50,7 @@ public:
     int8_t diffQPIB;// B frame qp minus initQP
     uint32_t temporalLayerNum; // svc-t temporal layer number
     uint32_t priorityId; // h264 priority_id in prefix nal unit
+    EncodeParamsVP9 m_encParamsVP9;
 };
 
 class TranscodeParams

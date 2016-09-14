@@ -19,6 +19,11 @@
 #include "vppoutputencode.h"
 #include <Yami.h>
 
+EncodeParamsVP9::EncodeParamsVP9()
+    : referenceMode(0)
+{ /* do nothig*/
+}
+
 EncodeParams::EncodeParams()
     : rcMode(RATE_CONTROL_CQP)
     , initQp(26)
@@ -78,7 +83,8 @@ void VppOutputEncode::initOuputBuffer()
 }
 
 static void setEncodeParam(const SharedPtr<IVideoEncoder>& encoder,
-                           int width, int height, const EncodeParams* encParam)
+                           int width, int height, const EncodeParams* encParam,
+                           const char * mimeType)
 {
     //configure encoding parameters
     VideoParamsCommon encVideoParams;
@@ -105,30 +111,43 @@ static void setEncodeParam(const SharedPtr<IVideoEncoder>& encoder,
 
     // configure AVC encoding parameters
     VideoParamsAVC encVideoParamsAVC;
-    encVideoParamsAVC.size = sizeof(VideoParamsAVC);
-    encoder->getParameters(VideoParamsTypeAVC, &encVideoParamsAVC);
-    encVideoParamsAVC.idrInterval = encParam->idrInterval;
-    encVideoParamsAVC.size = sizeof(VideoParamsAVC);
+    if (!strcmp(mimeType, YAMI_MIME_H264)) {
+        encVideoParamsAVC.size = sizeof(VideoParamsAVC);
+        encoder->getParameters(VideoParamsTypeAVC, &encVideoParamsAVC);
+        encVideoParamsAVC.idrInterval = encParam->idrInterval;
+        encVideoParamsAVC.size = sizeof(VideoParamsAVC);
 #if YAMI_CHECK_API_VERSION(0, 2, 1)
-    encVideoParamsAVC.enableCabac = encParam->enableCabac;
-    encVideoParamsAVC.enableDct8x8 = encParam->enableDct8x8;
-    encVideoParamsAVC.enableDeblockFilter = encParam->enableDeblockFilter;
-    encVideoParamsAVC.deblockAlphaOffsetDiv2 = encParam->deblockAlphaOffsetDiv2;
-    encVideoParamsAVC.deblockBetaOffsetDiv2 = encParam->deblockBetaOffsetDiv2;
+        encVideoParamsAVC.enableCabac = encParam->enableCabac;
+        encVideoParamsAVC.enableDct8x8 = encParam->enableDct8x8;
+        encVideoParamsAVC.enableDeblockFilter = encParam->enableDeblockFilter;
+        encVideoParamsAVC.deblockAlphaOffsetDiv2
+            = encParam->deblockAlphaOffsetDiv2;
+        encVideoParamsAVC.deblockBetaOffsetDiv2
+            = encParam->deblockBetaOffsetDiv2;
 #else
-    ERROR("version num of YamiAPI should be greater than or enqual to %s, \n%s "
-    , "0.2.1"
-    , "or enableCabac, enableDct8x8 and enableDeblockFilter will use the default value");
+        ERROR("version num of YamiAPI should be greater than or enqual to %s, "
+              "\n%s ",
+              "0.2.1", "or enableCabac, enableDct8x8 and enableDeblockFilter "
+                       "will use the default value");
 #endif
-    encVideoParamsAVC.temporalLayerNum = encParam->temporalLayerNum;
-    encVideoParamsAVC.priorityId = encParam->priorityId;
+        encVideoParamsAVC.temporalLayerNum = encParam->temporalLayerNum;
+        encVideoParamsAVC.priorityId = encParam->priorityId;
 
-    encoder->setParameters(VideoParamsTypeAVC, &encVideoParamsAVC);
+        encoder->setParameters(VideoParamsTypeAVC, &encVideoParamsAVC);
 
-    VideoConfigAVCStreamFormat streamFormat;
-    streamFormat.size = sizeof(VideoConfigAVCStreamFormat);
-    streamFormat.streamFormat = AVC_STREAM_FORMAT_ANNEXB;
-    encoder->setParameters(VideoConfigTypeAVCStreamFormat, &streamFormat);
+        VideoConfigAVCStreamFormat streamFormat;
+        streamFormat.size = sizeof(VideoConfigAVCStreamFormat);
+        streamFormat.streamFormat = AVC_STREAM_FORMAT_ANNEXB;
+        encoder->setParameters(VideoConfigTypeAVCStreamFormat, &streamFormat);
+    }
+
+    // configure VP9 encoding parameters
+    VideoParamsVP9 encVideoParamsVP9;
+    if (!strcmp(mimeType, YAMI_MIME_VP9)) {
+      encoder->getParameters(VideoParamsTypeVP9, &encVideoParamsVP9);
+         encVideoParamsVP9.referenceMode = encParam->m_encParamsVP9.referenceMode;
+         encoder->setParameters(VideoParamsTypeVP9, &encVideoParamsVP9);
+    }
 }
 
 bool VppOutputEncode::config(NativeDisplay& nativeDisplay, const EncodeParams* encParam)
@@ -137,7 +156,8 @@ bool VppOutputEncode::config(NativeDisplay& nativeDisplay, const EncodeParams* e
     if (!m_encoder)
         return false;
     m_encoder->setNativeDisplay(&nativeDisplay);
-    setEncodeParam(m_encoder, m_width, m_height, encParam);
+    m_mime = m_output->getMimeType();
+    setEncodeParam(m_encoder, m_width, m_height, encParam, m_mime);
 
     Encode_Status status = m_encoder->start();
     assert(status == ENCODE_SUCCESS);
@@ -150,6 +170,7 @@ bool VppOutputEncode::output(const SharedPtr<VideoFrame>& frame)
     Encode_Status status = ENCODE_SUCCESS;
     bool drain = !frame;
     if (frame) {
+
         status = m_encoder->encode(frame);
         if (status != ENCODE_SUCCESS) {
             fprintf(stderr, "encode failed status = %d\n", status);
