@@ -60,6 +60,8 @@ static void print_help(const char* app)
     printf("   --refmode <VP9 Reference frames mode (default 0 last(previous), "
            "gold/alt (previous key frame) | 1 last (previous) gold (one before "
            "last) alt (one before gold)> optional\n");
+    printf("   --ow <output width> optional\n");
+    printf("   --oh <output height> optional\n");
 }
 
 static VideoRateControl string_to_rc_mode(char *str)
@@ -97,6 +99,8 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
         {"qpib", required_argument, NULL, 0 },
         {"priorityid", required_argument, NULL, 0 },
         {"refmode", required_argument, NULL, 0 },
+        {"ow", required_argument, NULL, 0 },
+        {"oh", required_argument, NULL, 0 },
         {NULL, no_argument, NULL, 0 }};
     int option_index;
 
@@ -119,10 +123,10 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
             para.outputFileName = optarg;
             break;
         case 'W':
-            para.oWidth = atoi(optarg);
+            para.iWidth = atoi(optarg);
             break;
         case 'H':
-            para.oHeight = atoi(optarg);
+            para.iHeight = atoi(optarg);
             break;
         case 'b':
             para.m_encParams.bitRate = atoi(optarg) * 1024;//kbps to bps
@@ -190,6 +194,12 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
                 case 15:
                     para.m_encParams.m_encParamsVP9.referenceMode = atoi(optarg);
                     break;
+                case 16:
+                    para.oWidth = atoi(optarg);
+                    break;
+                case 17:
+                    para.oHeight = atoi(optarg);
+                    break;
             }
         }
     }
@@ -209,12 +219,17 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
     if (!strncmp(para.inputFileName.c_str(), "/dev/video", strlen("/dev/video")) && !para.frameCount)
         para.frameCount = 50;
 
+    if (!para.oWidth)
+        para.oWidth = para.iWidth;
+    if (!para.oHeight)
+        para.oHeight = para.iHeight;
+
     return true;
 }
 
 SharedPtr<VppInput> createInput(TranscodeParams& para, const SharedPtr<VADisplay>& display)
 {
-    SharedPtr<VppInput> input(VppInput::create(para.inputFileName.c_str()));
+    SharedPtr<VppInput> input(VppInput::create(para.inputFileName.c_str(), 0, para.iWidth, para.iHeight));
     if (!input) {
         ERROR("creat input failed");
         return input;
