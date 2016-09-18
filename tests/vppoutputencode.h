@@ -60,8 +60,10 @@ public:
 
     EncodeParams m_encParams;
     uint32_t frameCount;
-    int32_t oWidth; /*output video width*/
-    int32_t oHeight; /*output vide height*/
+    uint32_t iWidth; /*input video width*/
+    uint32_t iHeight; /*input vide height*/
+    uint32_t oWidth; /*output video width*/
+    uint32_t oHeight; /*output vide height*/
     uint32_t fourcc;
     string inputFileName;
     string outputFileName;
