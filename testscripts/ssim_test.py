@@ -23,6 +23,8 @@ def isCandidate(f):
         , ".mpeg"
         , ".mpg"
         , ".mpeg2"
+        , ".mjpg"
+        , ".mjpeg"
     ]
     return ext in supported
 
