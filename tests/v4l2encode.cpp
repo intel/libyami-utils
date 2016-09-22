@@ -451,5 +451,6 @@ int main(int argc, char** argv)
     ASSERT(ioctlRet != -1);
 
     fprintf(stderr, "encode done\n");
+    return 0;
 }
 
