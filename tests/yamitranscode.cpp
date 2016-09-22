@@ -357,7 +357,11 @@ public:
             if(count >= m_cmdParam.frameCount)
                 break;
         }
+        src.reset();
+        m_output->output(src);
+
         fps.log();
+
         return true;
     }
 private:

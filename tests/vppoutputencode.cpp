@@ -179,6 +179,9 @@ bool VppOutputEncode::output(const SharedPtr<VideoFrame>& frame)
             return false;
         }
     }
+    else {
+        m_encoder->flush();
+    }
     do {
         status = m_encoder->getOutput(&m_outputBuffer, drain);
         if (status == ENCODE_SUCCESS
