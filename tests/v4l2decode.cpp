@@ -1031,5 +1031,6 @@ int main(int argc, char** argv)
 #endif
 
     fprintf(stdout, "decode done\n");
+    return 0;
 }
 
