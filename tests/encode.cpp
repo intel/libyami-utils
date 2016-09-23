@@ -166,6 +166,7 @@ int main(int argc, char** argv)
     }
 
     // drain the output buffer
+    encoder->flush();
     do {
 #ifndef __BUILD_GET_MV__
        status = encoder->getOutput(&outputBuffer, true);
