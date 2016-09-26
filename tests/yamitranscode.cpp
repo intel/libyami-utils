@@ -56,12 +56,12 @@ static void print_help(const char* app)
     printf("   --qpip <qp difference between adjacent I/P (default 0)> optional\n");
     printf("   --qpib <qp difference between adjacent I/B (default 0)> optional\n");
     printf("   --priorityid <AVC priority_id of prefix nal unit (default 0)> optional\n");
+    printf("   --ow <output width> optional\n");
+    printf("   --oh <output height> optional\n");
     printf("   VP9 encoder specific options:\n");
     printf("   --refmode <VP9 Reference frames mode (default 0 last(previous), "
            "gold/alt (previous key frame) | 1 last (previous) gold (one before "
            "last) alt (one before gold)> optional\n");
-    printf("   --ow <output width> optional\n");
-    printf("   --oh <output height> optional\n");
 }
 
 static VideoRateControl string_to_rc_mode(char *str)
