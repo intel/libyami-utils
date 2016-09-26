@@ -23,8 +23,8 @@ m4_define([libyamiutils_lt_age], 0)
 m4_define([libyamiutils_lt_version], [libyamiutils_lt_current.libyamiutils_lt_revision.libyamiutils_lt_age])
 
 # package version (lib name suffix), usually sync with git tag
-m4_define([libyamiutils_major_version], 0)
-m4_define([libyamiutils_minor_version], 1)
+m4_define([libyamiutils_major_version], 1)
+m4_define([libyamiutils_minor_version], 0)
 # even number of micro_version means a release after full validation cycle
 m4_define([libyamiutils_micro_version], 0)
 m4_define([libyamiutils_version],
@@ -260,7 +260,7 @@ if test "$enable_md5" = "yes"; then
         [])
 fi
 
-PKG_CHECK_MODULES([LIBYAMI], [libyami >= 0.2.12])
+PKG_CHECK_MODULES([LIBYAMI], [libyami >= 0.3.0])
 
 AM_CONDITIONAL(ENABLE_MD5, test "x$enable_md5" = "xyes")
 
