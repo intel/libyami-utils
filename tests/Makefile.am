@@ -3,9 +3,15 @@ if ENABLE_V4L2
 bin_PROGRAMS += v4l2encode v4l2decode
 endif
 
+#to compile within yocto
+extra_includes = \
+        -I$(top_srcdir) \
+        $(NULL)
+
 AM_CFLAGS = \
 	$(LIBVA_CFLAGS) \
 	$(LIBYAMI_CFLAGS) \
+	$(extra_includes) \
 	$(NULL)
 
 DECODE_INPUT_SOURCES = \

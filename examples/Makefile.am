@@ -13,10 +13,16 @@ if ENABLE_DMABUF
 bin_PROGRAMS += grid
 endif
 
+#to compile within yocto
+extra_includes = \
+        -I$(top_srcdir) \
+        $(NULL)
+
 AM_CFLAGS = \
 	-I../tests \
 	$(LIBYAMI_CFLAGS) \
 	$(LIBVA_CFLAGS) \
+	$(extra_includes) \
 	$(NULL)
 
 DECODE_INPUT_SOURCES = \

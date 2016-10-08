@@ -17,7 +17,7 @@
 #include "config.h"
 #endif
 
-#include "decodeinput.h"
+#include "tests/decodeinput.h"
 #include "common/log.h"
 #include <Yami.h>
 #include <stdio.h>
