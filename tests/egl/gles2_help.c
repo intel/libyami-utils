@@ -353,4 +353,3 @@ void eglRelease(EGLContextType *context)
     eglTerminate(context->eglContext.display);
     free(context);
 }
-

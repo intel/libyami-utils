@@ -203,9 +203,11 @@ static std::vector<struct RawFrameData> rawOutputFrames;
 
 static FILE* outfp = NULL;
 
-#if (!defined(ANDROID) && !defined(__ENABLE_WAYLAND__))
+#if __ENABLE_X11__
 static Display * x11Display = NULL;
 static Window x11Window = 0;
+#endif
+#if __ENABLE_TESTS_GLES__
 static EGLContextType *eglContext = NULL;
 static std::vector<EGLImageKHR> eglImages;
 static std::vector<GLuint> textureIds;
@@ -477,7 +479,7 @@ static bool displayOneVideoFrameWayland(int32_t fd, struct v4l2_buffer  *buf)
     ASSERT(ioctlRet != -1);
     return true;
 }
-#else
+#elif __ENABLE_TESTS_GLES__
 bool displayOneVideoFrameEGL(int32_t fd, int32_t index)
 {
     ASSERT(eglContext && textureIds.size());
@@ -519,9 +521,11 @@ bool takeOneOutputFrame(int fd, int index = -1/* if index is not -1, simple enqu
 #elif __ENABLE_WAYLAND__
         ret = displayOneVideoFrameWayland(fd, &buf);
 #else
+#ifdef __ENABLE_TESTS_GLES__
         if (IS_DMA_BUF() || IS_DRM_NAME())
             ret = displayOneVideoFrameEGL(fd, buf.index);
-        else
+#endif
+        if (IS_RAW_DATA())
             ret = dumpOneVideoFrame(buf.index);
 #endif
         // ASSERT(ret);
@@ -847,7 +851,9 @@ int main(int argc, char** argv)
                 rawOutputFrames[i].pitch[j] = format.fmt.pix_mp.plane_fmt[j].bytesperline;
             }
         }
-    } else if (IS_DMA_BUF() || IS_DRM_NAME()) {
+    }
+#if __ENABLE_TESTS_GLES__
+    if (IS_DMA_BUF() || IS_DRM_NAME()) {
         // setup all textures and eglImages
         eglImages.resize(outputQueueCapacity);
 
@@ -871,6 +877,7 @@ int main(int argc, char** argv)
              DEBUG("textureIds[%d]: 0x%x, eglImages[%d]: 0x%p", i, textureIds[i], i, eglImages[i]);
         }
     }
+#endif
 #endif
 #if __ENABLE_WAYLAND__
     struct v4l2_buffer buffer;
@@ -990,7 +997,7 @@ int main(int argc, char** argv)
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
     ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_STREAMOFF, &type);
     ASSERT(ioctlRet != -1);
-#if (!defined(ANDROID) && !defined(__ENABLE_WAYLAND__))
+#if __ENABLE_TESTS_GLES__
     if(textureIds.size())
         glDeleteTextures(textureIds.size(), &textureIds[0]);
     ASSERT(glGetError() == GL_NO_ERROR);
