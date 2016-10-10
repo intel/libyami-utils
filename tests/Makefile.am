@@ -102,7 +102,9 @@ v4l2decode_LDADD   = $(V4L2_DECODE_LIBS)
 v4l2decode_LDFLAGS = $(V4L2_DECODE_LDFLAGS)
 v4l2decode_SOURCES = v4l2decode.cpp decodehelp.cpp $(DECODE_INPUT_SOURCES)
 
+if ENABLE_TESTS_GLES
 v4l2decode_SOURCES += ./egl/gles2_help.c
+endif
 v4l2decode_LDADD += -ldl
 
 

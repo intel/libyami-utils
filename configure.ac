@@ -50,8 +50,8 @@ AC_SUBST(LIBYAMIUTILS_LT_LDFLAGS)
 
 AC_ARG_ENABLE(tests-gles,
     [AC_HELP_STRING([--enable-tests-gles],
-        [build with extra gles tests @<:@default=no@:>@])],
-    [], [enable_test_gles="no"])
+        [build with extra gles tests @<:@default=yes@:>@])],
+    [], [enable_tests_gles="yes"])
 
 if test "$enable_tests_gles" = "yes"; then
     AC_DEFINE([__ENABLE_TESTS_GLES__], [1],
