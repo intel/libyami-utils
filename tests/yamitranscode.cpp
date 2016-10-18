@@ -58,6 +58,10 @@ static void print_help(const char* app)
     printf("   --priorityid <AVC priority_id of prefix nal unit (default 0)> optional\n");
     printf("   --ow <output width> optional\n");
     printf("   --oh <output height> optional\n");
+    printf("   --btl0 <svc-t layer 0 bitrate: kbps> optional\n");
+    printf("   --btl1 <svc-t layer 1 bitrate: kbps > optional\n");
+    printf("   --btl2 <svc-t layer 2 bitrate: kbps> optional\n");
+    printf("   --btl3 <svc-t layer 3 bitrate: kbps> optional\n");
     printf("   VP9 encoder specific options:\n");
     printf("   --refmode <VP9 Reference frames mode (default 0 last(previous), "
            "gold/alt (previous key frame) | 1 last (previous) gold (one before "
@@ -101,6 +105,10 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
         {"refmode", required_argument, NULL, 0 },
         {"ow", required_argument, NULL, 0 },
         {"oh", required_argument, NULL, 0 },
+        {"btl0", required_argument, NULL, 0 },
+        {"btl1", required_argument, NULL, 0 },
+        {"btl2", required_argument, NULL, 0 },
+        {"btl3", required_argument, NULL, 0 },
         {NULL, no_argument, NULL, 0 }};
     int option_index;
 
@@ -199,6 +207,18 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
                     break;
                 case 17:
                     para.oHeight = atoi(optarg);
+                    break;
+                case 18:
+                    para.m_encParams.layerBitRate[0] = atoi(optarg) * 1024;//kbps to bps;
+                    break;
+                case 19:
+                    para.m_encParams.layerBitRate[1] = atoi(optarg) * 1024;//kbps to bps;
+                    break;
+                case 20:
+                    para.m_encParams.layerBitRate[2] = atoi(optarg) * 1024;//kbps to bps;
+                    break;
+                case 21:
+                    para.m_encParams.layerBitRate[3] = atoi(optarg) * 1024;//kbps to bps;
                     break;
             }
         }

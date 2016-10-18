@@ -44,7 +44,7 @@ EncodeParams::EncodeParams()
     , temporalLayerNum(1)
     , priorityId(0)
 {
-    /*nothing to do*/
+    memset(layerBitRate, 0, sizeof(layerBitRate));
 }
 
 TranscodeParams::TranscodeParams()
@@ -108,6 +108,8 @@ static void setEncodeParam(const SharedPtr<IVideoEncoder>& encoder,
     encVideoParams.rcParams.diffQPIB = encParam->diffQPIB;
     encVideoParams.rcMode = encParam->rcMode;
     encVideoParams.numRefFrames = encParam->numRefFrames;
+    memcpy(encVideoParams.rcParams.layerBitRate, encParam->layerBitRate,
+           sizeof(encParam->layerBitRate));
     encVideoParams.size = sizeof(VideoParamsCommon);
     encoder->setParameters(VideoParamsTypeCommon, &encVideoParams);
 
