@@ -28,6 +28,11 @@ bool VppInputDecode::init(const char* inputFileName, uint32_t /*fourcc*/, int /*
     return true;
 }
 
+void VppInputDecode::setenableLatencyPrintFlag(bool enableFrameLatencyprint)
+{
+    m_enableprintFrameLatency = enableFrameLatencyprint;
+}
+
 bool VppInputDecode::config(NativeDisplay& nativeDisplay)
 {
     m_decoder->setNativeDisplay(&nativeDisplay);
@@ -51,6 +56,15 @@ bool VppInputDecode::config(NativeDisplay& nativeDisplay)
     return status == DECODE_SUCCESS;
 }
 
+void VppInputDecode::getTimeStamp(VideoDecodeBuffer& inputBuffer){
+    if (m_enableprintFrameLatency){
+        struct timeval start;
+        gettimeofday(&start, NULL);
+        int64_t now = 1000000 * start.tv_sec + start.tv_usec;
+        inputBuffer.timeStamp = now;
+    }
+}
+
 bool VppInputDecode::read(SharedPtr<VideoFrame>& frame)
 {
     if (m_first) {
@@ -68,6 +82,7 @@ bool VppInputDecode::read(SharedPtr<VideoFrame>& frame)
         VideoDecodeBuffer inputBuffer;
         Decode_Status status = DECODE_FAIL;
         if (m_input->getNextDecodeUnit(inputBuffer)) {
+            getTimeStamp(inputBuffer);
             status = m_decoder->decode(&inputBuffer);
             if (DECODE_FORMAT_CHANGE == status) {
 

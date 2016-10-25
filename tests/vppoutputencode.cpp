@@ -34,6 +34,10 @@ EncodeParams::EncodeParams()
     , numRefFrames(1)
     , idrInterval(0)
     , codec("")
+    , enableprintFrameLatency(false)
+    , FrameLatencyLogFile("Latencylog")
+    , enableprintBitRate(false)
+    , BitRateLogFile("BitRatelog")
     , enableCabac(true)
     , enableDct8x8(false)
     , enableDeblockFilter(true)
@@ -168,7 +172,8 @@ bool VppOutputEncode::config(NativeDisplay& nativeDisplay, const EncodeParams* e
     m_encoder->setNativeDisplay(&nativeDisplay);
     m_mime = m_output->getMimeType();
     setEncodeParam(m_encoder, m_width, m_height, encParam, m_mime, m_fourcc);
-
+    m_bitRate.init(encParam);
+    m_frameLatency.init(encParam);
     Encode_Status status = m_encoder->start();
     assert(status == ENCODE_SUCCESS);
     initOuputBuffer();
@@ -192,17 +197,108 @@ bool VppOutputEncode::output(const SharedPtr<VideoFrame>& frame)
     }
     do {
         status = m_encoder->getOutput(&m_outputBuffer, drain);
-        if (status == ENCODE_SUCCESS
-            && !m_output->write(m_outputBuffer.data, m_outputBuffer.dataSize))
-             assert(0);
+        if (status == ENCODE_SUCCESS){
+            m_frameLatency.getFrameDelay(m_outputBuffer);
+            m_bitRate.getBitRate(m_outputBuffer);
+            if (!m_output->write(m_outputBuffer.data, m_outputBuffer.dataSize))
+                assert(0);
+        }
 
         if (status == ENCODE_BUFFER_TOO_SMALL) {
             m_outputBuffer.bufferSize = (m_outputBuffer.bufferSize * 3) / 2;
             m_buffer.resize(m_outputBuffer.bufferSize);
             m_outputBuffer.data = &m_buffer[0];
         }
-
     } while (status != ENCODE_BUFFER_NO_MORE);
     return true;
 
 }
+
+void VppOutputEncode::printBitRate()
+{
+    m_bitRate.printBitRate();
+}
+
+void VppOutputEncode::printFrameLatency()
+{
+    m_frameLatency.printFrameLatency();
+}
+
+void BitRateCalc::init(const EncodeParams* encParam)
+{
+    m_enablePrintBitRate = encParam->enableprintBitRate;
+    m_totalDataSize = 0;
+    m_fps = encParam->fps;
+    m_frameCount = 0;
+    if (m_enablePrintBitRate){
+        m_bitRateLogFile = fopen((encParam->BitRateLogFile).c_str(),"w");
+    }
+}
+
+void BitRateCalc::getBitRate(VideoEncOutputBuffer m_outputBuffer){
+    if (m_enablePrintBitRate)
+    {
+        m_frameCount++;
+        m_totalDataSize += m_outputBuffer.dataSize;
+        fprintf(m_bitRateLogFile,"Bitrate after %ld frames is: %ld bits/second\n", m_frameCount, m_outputBuffer.dataSize * 8 * m_fps);
+    }
+}
+
+void BitRateCalc::printBitRate()
+{
+    if (m_enablePrintBitRate){
+        fprintf(m_bitRateLogFile,"Average BitRate after %ld frame: %ld bits/second\n",
+            m_frameCount, m_totalDataSize / m_frameCount * 8 * m_fps);
+        printf("Average BitRate after %ld frame: %ld bits/second\n",
+            m_frameCount, m_totalDataSize / m_frameCount * 8 * m_fps);
+        fclose(m_bitRateLogFile);
+    }
+}
+
+void FrameLatencyCalc::init(const EncodeParams* encParam)
+{
+    m_enablePrintLatency = encParam->enableprintFrameLatency;
+    if (m_enablePrintLatency){
+        m_latencyLogFile = fopen((encParam->FrameLatencyLogFile).c_str(),"w");
+    }
+}
+
+void FrameLatencyCalc::getFrameDelay(VideoEncOutputBuffer m_outputBuffer)
+{
+    if (m_enablePrintLatency)
+    {
+        struct timeval end;
+        gettimeofday(&end,NULL);
+        int64_t now = 1000000 * end.tv_sec + end.tv_usec;
+        int64_t delay = now - m_outputBuffer.timeStamp;
+        m_frameCount++;
+        if (m_frameCount == 1){
+            m_maxLatency = m_minLatency = delay;
+            m_totalLatency = 0;
+            m_maxLatencyFrame = 1;
+        }
+        else{
+            if (delay > m_maxLatency){
+                m_maxLatency = delay;
+                m_maxLatencyFrame = m_frameCount;
+            }
+            if (delay < m_minLatency)
+                m_minLatency = delay;
+            m_totalLatency += delay;
+        }
+        fprintf(m_latencyLogFile, "Frame Count:%ld, Latency:%ldus\n", m_frameCount, delay);
+    }
+}
+
+void FrameLatencyCalc::printFrameLatency()
+{
+    if (m_enablePrintLatency){
+        fprintf(m_latencyLogFile, 
+            "Frame Count:%ld, MaxLatency:%ldus at %ldframe, MinLatency:%ldus, Average Latency:%ldus\n", 
+            m_frameCount, m_maxLatency, m_maxLatencyFrame, m_minLatency, m_totalLatency / m_frameCount);
+        printf("Frame Count:%ld, MaxLatency:%ldus at %ldframe, MinLatency:%ldus, Average Latency:%ldus\n", 
+            m_frameCount, m_maxLatency, m_maxLatencyFrame, m_minLatency, m_totalLatency / m_frameCount);
+        fclose(m_latencyLogFile);
+    }
+}
+

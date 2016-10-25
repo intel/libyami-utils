@@ -35,6 +35,8 @@ static void print_help(const char* app)
     printf("%s <options>\n", app);
     printf("   -i <source filename> load a raw yuv file or a compressed video file\n");
     printf("   -W <width> -H <height>\n");
+    printf("   -L <log file> optional enable frame latency print\n");
+    printf("   -R <log file> optional enable bitrate print\n");
     printf("   -o <coded file> optional\n");
     printf("   -b <bitrate: kbps> optional\n");
     printf("   -f <frame rate> optional\n");
@@ -119,7 +121,7 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
         return false;
     }
 
-    while ((opt = getopt_long_only(argc, argv, "W:H:b:f:c:s:i:o:N:h:t:", long_opts,&option_index)) != -1)
+    while ((opt = getopt_long_only(argc, argv, "W:H:b:f:c:s:i:o:N:h:t:L:R:", long_opts,&option_index)) != -1)
     {
         switch (opt) {
         case 'h':
@@ -156,6 +158,16 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
             break;
         case 't':
             para.m_encParams.temporalLayerNum = atoi(optarg);
+            break;
+        case 'L':
+            para.m_encParams.enableprintFrameLatency = true;
+            if (optarg)
+                para.m_encParams.FrameLatencyLogFile = optarg;
+            break;
+        case 'R':
+            para.m_encParams.enableprintBitRate = true;
+            if (optarg)
+                para.m_encParams.BitRateLogFile = optarg;
             break;
         case 0:
              switch (option_index) {
@@ -282,6 +294,7 @@ SharedPtr<VppInput> createInput(TranscodeParams& para, const SharedPtr<VADisplay
         NativeDisplay nativeDisplay;
         nativeDisplay.type = NATIVE_DISPLAY_VA;
         nativeDisplay.handle = (intptr_t)*display;
+        inputDecode->setenableLatencyPrintFlag(para.m_encParams.enableprintFrameLatency);
         if(!inputDecode->config(nativeDisplay)) {
             ERROR("config input decode failed");
             input.reset();
@@ -395,7 +408,9 @@ public:
         m_output->output(src);
 
         fps.log();
-
+        m_output->printFrameLatency();
+        m_output->printBitRate();
+        
         return true;
     }
 private:

@@ -41,6 +41,10 @@ public:
     int32_t numRefFrames;
     int32_t idrInterval;
     string codec;
+    bool enableprintFrameLatency;
+    string FrameLatencyLogFile;
+    bool enableprintBitRate;
+    string BitRateLogFile;
     bool enableCabac;
     bool enableDct8x8;
     bool enableDeblockFilter;
@@ -71,9 +75,38 @@ public:
     string outputFileName;
 };
 
+struct FrameLatencyCalc
+{
+    void init(const EncodeParams* encParam);
+    int64_t m_frameCount;
+    int64_t m_maxLatency;
+    int64_t m_minLatency;
+    int64_t m_totalLatency;
+    int64_t m_maxLatencyFrame;
+    FILE *m_latencyLogFile;
+    bool m_enablePrintLatency;
+    void getFrameDelay(VideoEncOutputBuffer m_outputBuffer);
+    void printFrameLatency();
+};
+
+struct BitRateCalc
+{
+    void init(const EncodeParams* encParam);
+    int64_t m_frameCount;
+    int64_t m_totalDataSize;
+    int64_t m_fps;
+    FILE *m_bitRateLogFile;
+    bool m_enablePrintBitRate;
+    void getBitRate(VideoEncOutputBuffer m_outputBuffer);
+    void printBitRate();
+};
+
 class VppOutputEncode : public VppOutput
 {
 public:
+    
+    void printFrameLatency();
+    void printBitRate();
     virtual bool output(const SharedPtr<VideoFrame>& frame);
     virtual ~VppOutputEncode(){}
     bool config(NativeDisplay& nativeDisplay, const EncodeParams* encParam = NULL);
@@ -84,6 +117,8 @@ protected:
 private:
     void initOuputBuffer();
     const char* m_mime;
+    struct BitRateCalc m_bitRate;
+    struct FrameLatencyCalc m_frameLatency;
     SharedPtr<IVideoEncoder> m_encoder;
     VideoEncOutputBuffer m_outputBuffer;
     std::vector<uint8_t> m_buffer;
