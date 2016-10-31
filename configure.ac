@@ -260,7 +260,7 @@ if test "$enable_md5" = "yes"; then
         [])
 fi
 
-PKG_CHECK_MODULES([LIBYAMI], [libyami >= 0.3.1])
+PKG_CHECK_MODULES([LIBYAMI], [libyami >= 0.3.2])
 
 AM_CONDITIONAL(ENABLE_MD5, test "x$enable_md5" = "xyes")
 
