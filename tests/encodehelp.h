@@ -23,6 +23,7 @@ static int referenceMode = 0;
 static int idrInterval = 0;
 static int intraPeriod = 30;
 static int ipPeriod = 1;
+static int bitDepth = 8;
 static char *inputFileName = NULL;
 static char defaultOutputFile[] = "test.264";
 static char *outputFileName = defaultOutputFile;
@@ -60,8 +61,8 @@ static void print_help(const char* app)
     printf("   -o <coded file> optional\n");
     printf("   -b <bitrate: kbps> optional\n");
     printf("   -f <frame rate> optional\n");
-    printf("   -c <codec: AVC|VP8|VP9|JPEG>\n");
-    printf("   -s <fourcc: NV12|IYUV|YV12>\n");
+    printf("   -c <codec: HEVC|AVC|VP8|VP9|JPEG>\n");
+    printf("   -s <fourcc: NV12|IYUV|YV12|P010|I010>\n");
     printf("   -N <number of frames to encode(camera default 50), useful for camera>\n");
     printf("   --qp <initial qp> optional\n");
     printf("   --rcmode <CBR|CQP> optional\n");
@@ -72,6 +73,7 @@ static void print_help(const char* app)
     printf("   --refmode <VP9 Reference frames mode (default 0 last(previous), "
            "gold/alt (previous key frame) | 1 last (previous) gold (one before "
            "last) alt (one before gold)> optional\n");
+    printf("   --bitdepth <bitdepth:8/10> Note: 10bit only for HEVC\n");
 }
 
 static VideoRateControl string_to_rc_mode(char *str)
@@ -101,6 +103,7 @@ static bool process_cmdline(int argc, char *argv[])
         {"refnum", required_argument, NULL, 0 },
         {"idrinterval", required_argument, NULL, 0 },
         {"refmode", required_argument, NULL, 0 },
+        {"bitdepth", required_argument, NULL, 0 },
         {NULL, no_argument, NULL, 0 }};
     int option_index;
 
@@ -167,6 +170,9 @@ static bool process_cmdline(int argc, char *argv[])
                 case 7:
                     referenceMode = atoi(optarg);
                     break;
+                case 8:
+                    bitDepth = atoi(optarg);
+                    break;
             }
         }
     }
@@ -220,9 +226,15 @@ void setEncoderParameters(VideoParamsCommon * encVideoParams)
     encVideoParams->rcParams.initQP = initQp;
     encVideoParams->rcMode = rcMode;
     encVideoParams->numRefFrames = numRefFrames;
+    encVideoParams->bitDepth = bitDepth;
     //encVideoParams->rcParams.minQP = 1;
 
-    //encVideoParams->profile = VAProfileH264Main;
+    if(bitDepth == 10 && encVideoParams->profile == VAProfileHEVCMain)
+    {
+        encVideoParams->profile = VAProfileHEVCMain10;
+        if(inputFourcc == 0)
+            inputFourcc = VA_FOURCC('P','0','1','0');
+    }
  //   encVideoParams->profile = VAProfileVP8Version0_3;
 
 }
