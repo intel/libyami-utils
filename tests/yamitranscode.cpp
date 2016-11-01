@@ -62,6 +62,7 @@ static void print_help(const char* app)
     printf("   --btl1 <svc-t layer 1 bitrate: kbps > optional\n");
     printf("   --btl2 <svc-t layer 2 bitrate: kbps> optional\n");
     printf("   --btl3 <svc-t layer 3 bitrate: kbps> optional\n");
+    printf("   --startup-size <how many frames preload to memory> for performance mesurement only\n");
     printf("   VP9 encoder specific options:\n");
     printf("   --refmode <VP9 Reference frames mode (default 0 last(previous), "
            "gold/alt (previous key frame) | 1 last (previous) gold (one before "
@@ -109,6 +110,7 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
         {"btl1", required_argument, NULL, 0 },
         {"btl2", required_argument, NULL, 0 },
         {"btl3", required_argument, NULL, 0 },
+        {"startup-size", required_argument, NULL, 0 },
         {NULL, no_argument, NULL, 0 }};
     int option_index;
 
@@ -220,6 +222,9 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
                 case 21:
                     para.m_encParams.layerBitRate[3] = atoi(optarg) * 1024;//kbps to bps;
                     break;
+                case 22:
+                    para.startupSize = atoi(optarg);
+                    break;
             }
         }
     }
@@ -266,10 +271,15 @@ SharedPtr<VppInput> createInput(TranscodeParams& para, const SharedPtr<VADisplay
     SharedPtr<VppInputFile> inputFile = DynamicPointerCast<VppInputFile>(input);
     if (inputFile) {
         SharedPtr<FrameReader> reader(new VaapiFrameReader(display));
-        SharedPtr<FrameAllocator> alloctor(new PooledFrameAllocator(display, 5));
+        const static size_t allocatorExtra = 5;
+        SharedPtr<FrameAllocator> alloctor(new PooledFrameAllocator(display, para.startupSize + allocatorExtra));
         if(!inputFile->config(alloctor, reader)) {
             ERROR("config input failed");
             input.reset();
+        }
+    } else {
+        if (para.startupSize) {
+            ERROR("curretly, startup size is only work for yuv input");
         }
     }
     SharedPtr<VppInputDecode> inputDecode = DynamicPointerCast<VppInputDecode>(input);
@@ -282,8 +292,9 @@ SharedPtr<VppInput> createInput(TranscodeParams& para, const SharedPtr<VADisplay
             input.reset();
         }
     }
-    if (input)
-        input = VppInputAsync::create(input, 3); //make input in other thread.
+    if (input) {
+        input = VppInputAsync::create(input, 3, para.startupSize); //make input in other thread.
+    }
     return input;
 }
 
