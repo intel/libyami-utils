@@ -413,6 +413,9 @@ bool DecodeOutputMD5::output(const SharedPtr<VideoFrame>& frame)
 {
     if (!setVideoSize(frame->crop.width, frame->crop.height))
         return false;
+    if (frame->fourcc == YAMI_FOURCC_P010)
+        m_convert.reset(new ColorConvert(m_vaDisplay, YAMI_FOURCC_P010));
+
     if (!m_convert->convert(m_data, frame))
         return false;
 
