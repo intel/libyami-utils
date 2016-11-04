@@ -33,6 +33,7 @@ static int initQp=26;
 static VideoRateControl rcMode = RATE_CONTROL_CQP;
 static int frameCount = 0;
 static int numRefFrames = 1;
+static bool enableLowPower = false;
 
 #ifdef __BUILD_GET_MV__
 static FILE *MVFp;
@@ -72,6 +73,7 @@ static void print_help(const char* app)
     printf("   --refmode <VP9 Reference frames mode (default 0 last(previous), "
            "gold/alt (previous key frame) | 1 last (previous) gold (one before "
            "last) alt (one before gold)> optional\n");
+    printf("   --lowpower <Enable AVC low power mode (default 0, Disabled)> optional\n");
 }
 
 static VideoRateControl string_to_rc_mode(char *str)
@@ -101,6 +103,7 @@ static bool process_cmdline(int argc, char *argv[])
         {"refnum", required_argument, NULL, 0 },
         {"idrinterval", required_argument, NULL, 0 },
         {"refmode", required_argument, NULL, 0 },
+        {"lowpower", no_argument, 0, 0},
         {NULL, no_argument, NULL, 0 }};
     int option_index;
 
@@ -167,6 +170,9 @@ static bool process_cmdline(int argc, char *argv[])
                 case 7:
                     referenceMode = atoi(optarg);
                     break;
+                case 8:
+                    enableLowPower = true;
+                    break;
             }
         }
     }
@@ -220,6 +226,7 @@ void setEncoderParameters(VideoParamsCommon * encVideoParams)
     encVideoParams->rcParams.initQP = initQp;
     encVideoParams->rcMode = rcMode;
     encVideoParams->numRefFrames = numRefFrames;
+    encVideoParams->enableLowPower = enableLowPower;
     //encVideoParams->rcParams.minQP = 1;
 
     //encVideoParams->profile = VAProfileH264Main;
