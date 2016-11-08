@@ -95,6 +95,10 @@ public:
         : m_sharpening(SHARPENING_LEVEL_NONE)
         , m_denoise(DENOISE_LEVEL_NONE)
         , m_deinterlaceMode(NULL)
+        , m_hue(COLORBALANCE_LEVEL_NONE)
+        , m_saturation(COLORBALANCE_LEVEL_NONE)
+        , m_brightness(COLORBALANCE_LEVEL_NONE)
+        , m_contrast(COLORBALANCE_LEVEL_NONE)
 #endif
     {
     }
@@ -153,6 +157,10 @@ private:
             { "sharpening", required_argument, NULL, 's' },
             { "dn", required_argument, NULL, 0 },
             { "di", required_argument, NULL, 0 },
+            { "hue", required_argument, NULL, 0 },
+            { "sat", required_argument, NULL, 0 },
+            { "br", required_argument, NULL, 0 },
+            { "con", required_argument, NULL, 0 },
             { NULL, no_argument, NULL, 0 }
         };
         int option_index;
@@ -178,6 +186,18 @@ private:
                     break;
                 case 3:
                     m_deinterlaceMode = optarg;
+                    break;
+                case 4:
+                    m_hue = atoi(optarg);
+                    break;
+                case 5:
+                    m_saturation = atoi(optarg);
+                    break;
+                case 6:
+                    m_brightness = atoi(optarg);
+                    break;
+                case 7:
+                    m_contrast = atoi(optarg);
                     break;
                 default:
                     usage();
@@ -246,7 +266,37 @@ private:
                 return false;
             }
         }
+
+        setClrBalance(COLORBALANCE_HUE, m_hue);
+        setClrBalance(COLORBALANCE_SATURATION, m_saturation);
+        setClrBalance(COLORBALANCE_BRIGHTNESS, m_brightness);
+        setClrBalance(COLORBALANCE_CONTRAST, m_contrast);
 #endif
+        return true;
+    }
+    bool setClrBalance(VppColorBalanceMode mode, int32_t level)
+    {
+        VPPColorBalanceParameter clrBalanceParam;
+        int32_t tmp = level;
+
+        if (level < COLORBALANCE_LEVEL_NONE) {
+            level = COLORBALANCE_LEVEL_NONE;
+        }
+        if (level > COLORBALANCE_LEVEL_MAX) {
+            level = COLORBALANCE_LEVEL_MAX;
+        }
+        if (tmp != level) {
+            WARNING("contrast level should in range [%d, %d] or %d for none",
+                COLORBALANCE_LEVEL_MIN, COLORBALANCE_LEVEL_MAX, COLORBALANCE_LEVEL_NONE);
+        }
+
+        memset(&clrBalanceParam, 0, sizeof(clrBalanceParam));
+        clrBalanceParam.size = sizeof(clrBalanceParam);
+        clrBalanceParam.mode = mode;
+        clrBalanceParam.level = level;
+        if (m_vpp->setParameters(VppParamTypeColorBalance, &clrBalanceParam) != YAMI_SUCCESS) {
+            return false;
+        }
         return true;
     }
     SharedPtr<VADisplay> m_display;
@@ -259,6 +309,10 @@ private:
     char* m_deinterlaceMode;
     char* m_inputName;
     char* m_outputName;
+    int32_t m_hue;
+    int32_t m_saturation;
+    int32_t m_brightness;
+    int32_t m_contrast;
 };
 
 void usage()
@@ -270,6 +324,10 @@ void usage()
     printf("       -s <level> optional, sharpening level\n");
     printf("       --dn <level> optional, denoise level\n");
     printf("       --di <mode>, optional, deinterlace mode, only support bob\n");
+    printf("       --hue <level>, optional, hue level, range [0, 100] or -1, -1: delete this filter\n");
+    printf("       --sat <level>, optional, saturation level, range [0, 100] or -1, -1: delete this filter\n");
+    printf("       --br <level>, optional, brightness level, range [0, 100] or -1, -1: delete this filter\n");
+    printf("       --con <level>, optional, constrast level, range [0, 100] or -1, -1: delete this filter\n");
 }
 
 int main(int argc, char** argv)
