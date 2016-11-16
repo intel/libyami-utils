@@ -19,7 +19,7 @@
 #include "common/log.h"
 #include "common/utils.h"
 #include "common/VaapiUtils.h"
-#include "common/videopool.h"
+#include "common/PooledFrameAllocator.h"
 #include <Yami.h>
 
 #include <stdio.h>
@@ -63,78 +63,6 @@ class FrameWriter
 public:
     virtual bool write(FILE* fp,const SharedPtr<VideoFrame>& frame) = 0;
     virtual ~FrameWriter() {}
-};
-
-class FrameAllocator
-{
-public:
-    virtual bool setFormat(uint32_t fourcc, int width, int height) = 0;
-    virtual SharedPtr<VideoFrame> alloc() = 0;
-    virtual ~FrameAllocator() {}
-};
-
-
-//vaapi related operation
-class PooledFrameAllocator : public FrameAllocator
-{
-public:
-    PooledFrameAllocator(const SharedPtr<VADisplay>& display, size_t poolsize):
-        m_display(display), m_poolsize(poolsize)
-    {
-    }
-    bool setFormat(uint32_t fourcc, int width, int height)
-    {
-        destroySurfaces();
-        m_surfaces.resize(m_poolsize);
-        VASurfaceAttrib attrib;
-        attrib.flags = VA_SURFACE_ATTRIB_SETTABLE;
-        attrib.type = VASurfaceAttribPixelFormat;
-        attrib.value.type = VAGenericValueTypeInteger;
-        attrib.value.value.i = fourcc;
-        uint32_t rtformat;
-        rtformat = getRtFormat(fourcc);
-        if (!rtformat)
-            return false;
-        VAStatus status = vaCreateSurfaces(*m_display, rtformat, width, height,
-                                           &m_surfaces[0], m_surfaces.size(),&attrib, 1);
-        if (status != VA_STATUS_SUCCESS) {
-            ERROR("create surface failed fourcc = %d", fourcc);
-            m_surfaces.clear();
-            return false;
-        }
-        std::deque<SharedPtr<VideoFrame> > buffers;
-        for (size_t i = 0;  i < m_surfaces.size(); i++) {
-            SharedPtr<VideoFrame> f(new VideoFrame);
-            memset(f.get(), 0, sizeof(VideoFrame));
-            //we need fill dest crop to work around libva's bug.
-            f->crop.width = width;
-            f->crop.height = height;
-            f->fourcc = fourcc;
-            f->surface = (intptr_t)m_surfaces[i];
-            buffers.push_back(f);
-        }
-        m_pool = VideoPool<VideoFrame>::create(buffers);
-        return true;
-    }
-    SharedPtr<VideoFrame> alloc()
-    {
-        return m_pool->alloc();
-    }
-    void destroySurfaces()
-    {
-        if (m_surfaces.size())
-            vaDestroySurfaces(*m_display, &m_surfaces[0], m_surfaces.size());
-    }
-    ~PooledFrameAllocator()
-    {
-        destroySurfaces();
-    }
-
-private:
-    SharedPtr<VADisplay> m_display;
-    std::vector<VASurfaceID> m_surfaces;
-    SharedPtr<VideoPool<VideoFrame> > m_pool;
-    size_t m_poolsize;
 };
 
 class VaapiFrameIO
