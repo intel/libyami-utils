@@ -27,7 +27,6 @@
 #include  <sys/mman.h>
 #include <vector>
 #include <stdint.h>
-#include <inttypes.h>
 
 #include "common/log.h"
 #include "common/utils.h"
@@ -41,19 +40,14 @@
 #else
 #include "./egl/gles2_help.h"
 #endif
+#include "V4L2Device.h"
+
 #include <Yami.h>
 
 #ifndef V4L2_EVENT_RESOLUTION_CHANGE
     #define V4L2_EVENT_RESOLUTION_CHANGE 5
 #endif
 
-#if __ENABLE_V4L2_OPS__
-#include "v4l2codec_device_ops.h"
-#include <dlfcn.h>
-#include <fcntl.h>
-#else
-#include "common/v4l2_wrapper.h"
-#endif
 
 int videoWidth = 0;
 int videoHeight = 0;
@@ -130,56 +124,6 @@ bool createNativeWindow(__u32 pixelformat)
 }
 #endif
 
-#if __ENABLE_V4L2_OPS__
-static struct V4l2CodecOps s_v4l2CodecOps;
-static int32_t s_v4l2Fd = 0;
-
-static bool loadV4l2CodecDevice(const char* libName )
-{
-    memset(&s_v4l2CodecOps, 0, sizeof(s_v4l2CodecOps));
-    s_v4l2Fd = 0;
-
-#ifndef ANDROID
-    if (!dlopen(libName, RTLD_NOW | RTLD_GLOBAL | RTLD_NODELETE)) {
-#else
-    if (!dlopen(libName, RTLD_NOW | RTLD_GLOBAL)) {
-#endif
-      ERROR("Failed to load %s\n", libName);
-      return false;
-    }
-
-    V4l2codecOperationInitFunc initFunc = NULL;
-    initFunc = (V4l2codecOperationInitFunc)dlsym(RTLD_DEFAULT, "v4l2codecOperationInit");
-
-    if (!initFunc) {
-        ERROR("fail to dlsym v4l2codecOperationInit\n");
-        return false;
-    }
-
-    INIT_V4L2CODEC_OPS_SIZE_VERSION(&s_v4l2CodecOps);
-    if (!initFunc(&s_v4l2CodecOps)) {
-        ERROR("fail to init v4l2 device operation func pointers\n");
-        return false;
-    }
-
-    int isVersionMatch = 0;
-    IS_V4L2CODEC_OPS_VERSION_MATCH(s_v4l2CodecOps.mVersion, isVersionMatch);
-    if (!isVersionMatch) {
-        ERROR("V4l2CodecOps interface version doesn't match\n");
-        return false;
-    }
-    if(s_v4l2CodecOps.mSize != sizeof(V4l2CodecOps)) {
-        ERROR("V4l2CodecOps interface data structure size doesn't match\n");
-        return false;
-    }
-
-    return true;
-}
-#define SIMULATE_V4L2_OP(OP)  s_v4l2CodecOps.m##OP##Func
-#else
-#define SIMULATE_V4L2_OP(OP)  YamiV4L2_##OP
-#endif
-
 
 struct RawFrameData {
     uint32_t width;
@@ -218,7 +162,7 @@ static uint32_t renderFrameCount = 0;
 
 static DecodeParameter params;
 
-bool feedOneInputFrame(DecodeInput * input, int fd, int index = -1 /* if index is not -1, simple enque it*/)
+bool feedOneInputFrame(DecodeInput* input, const SharedPtr<V4L2Device>& device, int index = -1 /* if index is not -1, simple enque it*/)
 {
 
     VideoDecodeBuffer inputBuffer;
@@ -234,7 +178,7 @@ bool feedOneInputFrame(DecodeInput * input, int fd, int index = -1 /* if index i
     buf.length = k_inputPlaneCount;
 
     if (index == -1) {
-        ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_DQBUF, &buf);
+        ioctlRet = device->ioctl(VIDIOC_DQBUF, &buf);
         if (ioctlRet == -1)
             return true;
         stagingBufferInDevice --;
@@ -257,7 +201,7 @@ bool feedOneInputFrame(DecodeInput * input, int fd, int index = -1 /* if index i
         buf.flags = inputBuffer.flag;
     }
 
-    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_QBUF, &buf);
+    ioctlRet = device->ioctl(VIDIOC_QBUF, &buf);
     ASSERT(ioctlRet != -1);
 
     stagingBufferInDevice ++;
@@ -296,7 +240,7 @@ bool dumpOneVideoFrame(int32_t index)
 }
 
 #ifdef ANDROID
-static bool displayOneVideoFrameAndroid(int32_t fd, int32_t index)
+static bool displayOneVideoFrameAndroid(const SharedPtr<V4L2Device>& device, int32_t index)
 {
     int32_t ioctlRet = -1;
     struct v4l2_buffer buffer;
@@ -326,7 +270,7 @@ static bool displayOneVideoFrameAndroid(int32_t fd, int32_t index)
     if (i == mWindBuff.size())
         return false;
 
-    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_QBUF, &buffer);
+    ioctlRet = device->ioctl(VIDIOC_QBUF, &buffer);
     ASSERT(ioctlRet != -1);
 
     return true;
@@ -466,7 +410,7 @@ bool output(struct wl_buffer *buffer)
     return vaPutSurfaceWayland(buffer, &srcRect, &dstRect);
 }
 
-static bool displayOneVideoFrameWayland(int32_t fd, struct v4l2_buffer  *buf)
+static bool displayOneVideoFrameWayland(const SharedPtr<V4L2Device>& device, struct v4l2_buffer* buf)
 {
     int32_t ioctlRet = -1;
     struct v4l2_buffer buffer;
@@ -475,12 +419,12 @@ static bool displayOneVideoFrameWayland(int32_t fd, struct v4l2_buffer  *buf)
     memset(&buffer, 0, sizeof(buffer));
     buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
     buffer.index = (buf->index) ? (buf->index - 1): (outputQueueCapacity - 1);
-    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_QBUF, &buffer);
+    ioctlRet = device->ioctl(VIDIOC_QBUF, &buffer);
     ASSERT(ioctlRet != -1);
     return true;
 }
 #elif __ENABLE_TESTS_GLES__
-bool displayOneVideoFrameEGL(int32_t fd, int32_t index)
+bool displayOneVideoFrameEGL(const SharedPtr<V4L2Device>& device, int32_t index)
 {
     ASSERT(eglContext && textureIds.size());
     ASSERT(index>=0 && (uint32_t)index<textureIds.size());
@@ -495,8 +439,7 @@ bool displayOneVideoFrameEGL(int32_t fd, int32_t index)
 }
 #endif
 
-
-bool takeOneOutputFrame(int fd, int index = -1/* if index is not -1, simple enque it*/)
+bool takeOneOutputFrame(const SharedPtr<V4L2Device>& device, int index = -1 /* if index is not -1, simple enque it*/)
 {
     struct v4l2_buffer buf;
     struct v4l2_plane planes[k_maxOutputPlaneCount]; // YUV output, in fact, we use NV12 of 2 planes
@@ -511,19 +454,19 @@ bool takeOneOutputFrame(int fd, int index = -1/* if index is not -1, simple enqu
     buf.length = outputPlaneCount;
 
     if (index == -1) {
-        ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_DQBUF, &buf);
+        ioctlRet = device->ioctl(VIDIOC_DQBUF, &buf);
         if (ioctlRet == -1)
             return false;
 
         renderFrameCount++;
 #ifdef ANDROID
-        ret = displayOneVideoFrameAndroid(fd, buf.index);
+        ret = displayOneVideoFrameAndroid(device, buf.index);
 #elif __ENABLE_WAYLAND__
-        ret = displayOneVideoFrameWayland(fd, &buf);
+        ret = displayOneVideoFrameWayland(device, &buf);
 #else
 #ifdef __ENABLE_TESTS_GLES__
         if (IS_DMA_BUF() || IS_DRM_NAME())
-            ret = displayOneVideoFrameEGL(fd, buf.index);
+            ret = displayOneVideoFrameEGL(device, buf.index);
 #endif
         if (IS_RAW_DATA())
             ret = dumpOneVideoFrame(buf.index);
@@ -536,21 +479,21 @@ bool takeOneOutputFrame(int fd, int index = -1/* if index is not -1, simple enqu
         buf.index = index;
     }
 #if (!defined(ANDROID) && !defined(__ENABLE_WAYLAND__))
-    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_QBUF, &buf);
+    ioctlRet = device->ioctl(VIDIOC_QBUF, &buf);
     ASSERT(ioctlRet != -1);
 #endif
     INFO("renderFrameCount: %d", renderFrameCount);
     return true;
 }
 
-bool handleResolutionChange(int32_t fd)
+bool handleResolutionChange(const SharedPtr<V4L2Device>& device)
 {
     bool resolutionChanged = false;
     // check resolution change
     struct v4l2_event ev;
     memset(&ev, 0, sizeof(ev));
 
-    while (SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_DQEVENT, &ev) == 0) {
+    while (device->ioctl(VIDIOC_DQEVENT, &ev) == 0) {
         if (ev.type == V4L2_EVENT_RESOLUTION_CHANGE) {
             resolutionChanged = true;
             break;
@@ -563,7 +506,7 @@ bool handleResolutionChange(int32_t fd)
     struct v4l2_format format;
     memset(&format, 0, sizeof(format));
     format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-    if (SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_G_FMT, &format) == -1) {
+    if (device->ioctl(VIDIOC_G_FMT, &format) == -1) {
         return false;
     }
 
@@ -581,21 +524,12 @@ extern uint32_t v4l2PixelFormatFromMime(const char* mime);
 int main(int argc, char** argv)
 {
     DecodeInput *input;
-    int32_t fd = -1;
     uint32_t i = 0;
     int32_t ioctlRet = -1;
     YamiMediaCodec::CalcFps calcFps;
 
 #if (defined (__ENABLE_X11__) && !defined(__ENABLE_WAYLAND__))
     XInitThreads();
-#endif
-
-#if __ENABLE_V4L2_OPS__
-    // FIXME, use libv4l2codec_hw.so instead
-    if (!loadV4l2CodecDevice("libyami_v4l2.so")) {
-        ERROR("fail to init v4l2codec device with __ENABLE_V4L2_OPS__\n");
-        return -1;
-    }
 #endif
 
     if (!processCmdLine(argc, argv, &params))
@@ -625,45 +559,37 @@ int main(int argc, char** argv)
         return -1;
     }
 
+    SharedPtr<V4L2Device> device = V4L2Device::Create();
+    if (!device) {
+        ERROR("failed to create v4l2 device");
+        return -1;
+    }
+
     renderFrameCount = 0;
     calcFps.setAnchor();
     // open device
-    fd = SIMULATE_V4L2_OP(Open)("decoder", 0);
-    ASSERT(fd!=-1);
+    if (!device->open("decoder", 0)) {
+        ERROR("open decode failed");
+        return -1;
+    }
 #if __ENABLE_WAYLAND__
     createWaylandDisplay();
-#if __ENABLE_V4L2_OPS__
-    char displayStr[32];
-    sprintf(displayStr, "%" PRIu64 "", (uint64_t)(waylandDisplay.display.get()));
-    ioctlRet = SIMULATE_V4L2_OP(SetParameter)(fd, "wayland-display", displayStr);
-#else
-    ioctlRet = SIMULATE_V4L2_OP(SetWaylandDisplay)(fd, m_waylandDisplay.display.get());
-#endif
-    ASSERT(ioctlRet != -1);
+    ioctlRet = device->setWaylandDisplay(waylandDisplay.display.get())
 #elif __ENABLE_X11__
     x11Display = XOpenDisplay(NULL);
     ASSERT(x11Display);
     DEBUG("x11display: %p", x11Display);
-    #if __ENABLE_V4L2_OPS__
-    char displayStr[32];
-    sprintf(displayStr, "%" PRIu64 "", (uint64_t)x11Display);
-    ioctlRet = SIMULATE_V4L2_OP(SetParameter)(fd, "x11-display", displayStr);
-    #else
-    ioctlRet = SIMULATE_V4L2_OP(SetXDisplay)(fd, x11Display);
-    #endif
+    ioctlRet = device->setXDisplay(x11Display);
 #endif
-    // set output frame memory type
-#if __ENABLE_V4L2_OPS__
-    SIMULATE_V4L2_OP(SetParameter)(fd, "frame-memory-type", memoryTypeStr);
-#else
-    SIMULATE_V4L2_OP(FrameMemoryType)(fd, memoryType);
-#endif
+                   ASSERT(ioctlRet != -1);
+
+    ioctlRet = device->setFrameMemoryType(memoryType);
 
     // query hw capability
     struct v4l2_capability caps;
     memset(&caps, 0, sizeof(caps));
     caps.capabilities = V4L2_CAP_VIDEO_CAPTURE_MPLANE | V4L2_CAP_VIDEO_OUTPUT_MPLANE | V4L2_CAP_STREAMING;
-    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_QUERYCAP, &caps);
+    ioctlRet = device->ioctl(VIDIOC_QUERYCAP, &caps);
     ASSERT(ioctlRet != -1);
 
     // set input/output data format
@@ -681,7 +607,7 @@ int main(int argc, char** argv)
     format.fmt.pix_mp.height = input->getHeight();
     format.fmt.pix_mp.num_planes = 1;
     format.fmt.pix_mp.plane_fmt[0].sizeimage = k_maxInputBufferSize;
-    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_S_FMT, &format);
+    ioctlRet = device->ioctl(VIDIOC_S_FMT, &format);
     ASSERT(ioctlRet != -1);
 
     // set preferred output format
@@ -698,11 +624,11 @@ int main(int argc, char** argv)
         ERROR("No enough space to store codec data");
         return -1;
     }
-    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_S_FMT, &format);
+    ioctlRet = device->ioctl(VIDIOC_S_FMT, &format);
     ASSERT(ioctlRet != -1);
     // input port starts as early as possible to decide output frame format
     __u32 type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_STREAMON, &type);
+    ioctlRet = device->ioctl(VIDIOC_STREAMON, &type);
     ASSERT(ioctlRet != -1);
 
     // setup input buffers
@@ -711,7 +637,7 @@ int main(int argc, char** argv)
     reqbufs.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
     reqbufs.memory = inputMemoryType;
     reqbufs.count = 8;
-    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_REQBUFS, &reqbufs);
+    ioctlRet = device->ioctl(VIDIOC_REQBUFS, &reqbufs);
     ASSERT(ioctlRet != -1);
     ASSERT(reqbufs.count>0);
     inputQueueCapacity = reqbufs.count;
@@ -727,15 +653,15 @@ int main(int argc, char** argv)
         buffer.memory = inputMemoryType;
         buffer.m.planes = planes;
         buffer.length = k_inputPlaneCount;
-        ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_QUERYBUF, &buffer);
+        ioctlRet = device->ioctl(VIDIOC_QUERYBUF, &buffer);
         ASSERT(ioctlRet != -1);
 
         // length and mem_offset should be filled by VIDIOC_QUERYBUF above
-        void* address = SIMULATE_V4L2_OP(Mmap)(NULL,
-                                      buffer.m.planes[0].length,
-                                      PROT_READ | PROT_WRITE,
-                                      MAP_SHARED, fd,
-                                      buffer.m.planes[0].m.mem_offset);
+        void* address = device->mmap(NULL,
+            buffer.m.planes[0].length,
+            PROT_READ | PROT_WRITE,
+            MAP_SHARED,
+            buffer.m.planes[0].m.mem_offset);
         ASSERT(address);
         inputFrames[i] = static_cast<uint8_t*>(address);
         DEBUG("inputFrames[%d] = %p", i, inputFrames[i]);
@@ -743,7 +669,7 @@ int main(int argc, char** argv)
 
     // feed input frames first
     for (i=0; i<inputQueueCapacity; i++) {
-        if (!feedOneInputFrame(input, fd, i)) {
+        if (!feedOneInputFrame(input, device, i)) {
             break;
         }
     }
@@ -752,7 +678,7 @@ int main(int argc, char** argv)
     memset(&format, 0, sizeof(format));
     format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
     while (1) {
-        if (SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_G_FMT, &format) != 0) {
+        if (device->ioctl(VIDIOC_G_FMT, &format) != 0) {
             if (errno != EINVAL) {
                 // EINVAL means we haven't seen sufficient stream to decode the format.
                 INFO("ioctl() failed: VIDIOC_G_FMT, haven't get video resolution during start yet, waiting");
@@ -788,7 +714,7 @@ int main(int argc, char** argv)
     struct v4l2_control ctrl;
     memset(&ctrl, 0, sizeof(ctrl));
     ctrl.id = V4L2_CID_MIN_BUFFERS_FOR_CAPTURE;
-    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_G_CTRL, &ctrl);
+    ioctlRet = device->ioctl(VIDIOC_G_CTRL, &ctrl);
 #ifndef ANDROID
     uint32_t minOutputFrameCount = ctrl.value + k_extraOutputFrameCount;
 #else
@@ -799,7 +725,7 @@ int main(int argc, char** argv)
     reqbufs.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
     reqbufs.memory = outputMemoryType;
     reqbufs.count = minOutputFrameCount;
-    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_REQBUFS, &reqbufs);
+    ioctlRet = device->ioctl(VIDIOC_REQBUFS, &reqbufs);
     ASSERT(ioctlRet != -1);
     ASSERT(reqbufs.count>0);
     outputQueueCapacity = reqbufs.count;
@@ -826,7 +752,7 @@ int main(int argc, char** argv)
             buffer.memory = outputMemoryType;
             buffer.m.planes = planes;
             buffer.length = outputPlaneCount;
-            ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_QUERYBUF, &buffer);
+            ioctlRet = device->ioctl(VIDIOC_QUERYBUF, &buffer);
             ASSERT(ioctlRet != -1);
 
             rawOutputFrames[i].width = format.fmt.pix_mp.width;
@@ -835,11 +761,11 @@ int main(int argc, char** argv)
 
             for (int j=0; j<outputPlaneCount; j++) {
                 // length and mem_offset are filled by VIDIOC_QUERYBUF above
-                void* address = SIMULATE_V4L2_OP(Mmap)(NULL,
-                                              buffer.m.planes[j].length,
-                                              PROT_READ | PROT_WRITE,
-                                              MAP_SHARED, fd,
-                                              buffer.m.planes[j].m.mem_offset);
+                void* address = device->mmap(NULL,
+                    buffer.m.planes[j].length,
+                    PROT_READ | PROT_WRITE,
+                    MAP_SHARED,
+                    buffer.m.planes[j].m.mem_offset);
                 ASSERT(address);
                 if (j == 0) {
                     rawOutputFrames[i].data = static_cast<uint8_t*>(address);
@@ -863,7 +789,7 @@ int main(int argc, char** argv)
         glGenTextures(outputQueueCapacity, &textureIds[0] );
         for (i=0; i<outputQueueCapacity; i++) {
              int ret = 0;
-             ret = SIMULATE_V4L2_OP(UseEglImage)(fd, eglContext->eglContext.display, eglContext->eglContext.context, i, &eglImages[i]);
+             ret = device->useEglImage(eglContext->eglContext.display, eglContext->eglContext.context, i, &eglImages[i]);
              ASSERT(ret == 0);
 
              GLenum target = GL_TEXTURE_2D;
@@ -876,8 +802,8 @@ int main(int argc, char** argv)
              glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
              DEBUG("textureIds[%d]: 0x%x, eglImages[%d]: 0x%p", i, textureIds[i], i, eglImages[i]);
         }
-    }
 #endif
+    }
 #endif
 #if __ENABLE_WAYLAND__
     struct v4l2_buffer buffer;
@@ -886,14 +812,14 @@ int main(int argc, char** argv)
         memset(&buffer, 0, sizeof(buffer));
         buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
         buffer.index = i;
-        ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_QBUF, &buffer);
+        ioctlRet = device->ioctl(VIDIOC_QBUF, &buffer);
         ASSERT(ioctlRet != -1);
     }
 #else
 #ifndef ANDROID
     // feed output frames first
     for (i=0; i<outputQueueCapacity; i++) {
-        if (!takeOneOutputFrame(fd, i)) {
+        if (!takeOneOutputFrame(device, i)) {
             ASSERT(0);
         }
     }
@@ -921,7 +847,7 @@ int main(int argc, char** argv)
         buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
         buffer.index = i;
 
-        ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_QBUF, &buffer);
+        ioctlRet = device->ioctl(VIDIOC_QBUF, &buffer);
         ASSERT(ioctlRet != -1);
         mWindBuff.push_back(pbuf);
     }
@@ -930,7 +856,7 @@ int main(int argc, char** argv)
         memset(&buffer, 0, sizeof(buffer));
         buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
 
-        ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_DQBUF, &buffer);
+        ioctlRet = device->ioctl(VIDIOC_DQBUF, &buffer);
         ASSERT(ioctlRet != -1);
 
         err = mNativeWindow->cancelBuffer(mNativeWindow.get(), mWindBuff[buffer.index], -1);
@@ -943,29 +869,29 @@ int main(int argc, char** argv)
 #endif
     // output port starts as late as possible to adopt user provide output buffer
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_STREAMON, &type);
+    ioctlRet = device->ioctl(VIDIOC_STREAMON, &type);
     ASSERT(ioctlRet != -1);
 
     bool event_pending=true; // try to get video resolution.
     uint32_t dqCountAfterEOS = 0;
     do {
         if (event_pending) {
-            handleResolutionChange(fd);
+            handleResolutionChange(device);
         }
 
-        takeOneOutputFrame(fd);
-        if (!feedOneInputFrame(input, fd)) {
+        takeOneOutputFrame(device);
+        if (!feedOneInputFrame(input, device)) {
             if (stagingBufferInDevice == 0)
                 break;
             dqCountAfterEOS++;
         }
         if (dqCountAfterEOS == inputQueueCapacity)  // input drain
             break;
-    } while (SIMULATE_V4L2_OP(Poll)(fd, true, &event_pending) == 0);
+    } while (device->poll(true, &event_pending) == 0);
 
     // drain output buffer
     int retry = 3;
-    while (takeOneOutputFrame(fd) || (--retry)>0) { // output drain
+    while (takeOneOutputFrame(device) || (--retry) > 0) { // output drain
         usleep(10000);
     }
 
@@ -978,24 +904,24 @@ int main(int argc, char** argv)
     reqbufs.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
     reqbufs.memory = inputMemoryType;
     reqbufs.count = 0;
-    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_REQBUFS, &reqbufs);
+    ioctlRet = device->ioctl(VIDIOC_REQBUFS, &reqbufs);
     ASSERT(ioctlRet != -1);
 
     memset(&reqbufs, 0, sizeof(reqbufs));
     reqbufs.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
     reqbufs.memory = outputMemoryType;
     reqbufs.count = 0;
-    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_REQBUFS, &reqbufs);
+    ioctlRet = device->ioctl(VIDIOC_REQBUFS, &reqbufs);
     ASSERT(ioctlRet != -1);
 
     // stop input port
     type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_STREAMOFF, &type);
+    ioctlRet = device->ioctl(VIDIOC_STREAMOFF, &type);
     ASSERT(ioctlRet != -1);
 
     // stop output port
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_STREAMOFF, &type);
+    ioctlRet = device->ioctl(VIDIOC_STREAMOFF, &type);
     ASSERT(ioctlRet != -1);
 #if __ENABLE_TESTS_GLES__
     if(textureIds.size())
@@ -1021,7 +947,7 @@ int main(int argc, char** argv)
 #endif
 
     // close device
-    ioctlRet = SIMULATE_V4L2_OP(Close)(fd);
+    ioctlRet = device->close();
     ASSERT(ioctlRet != -1);
 
     if(input)
