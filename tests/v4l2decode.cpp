@@ -710,7 +710,7 @@ int main(int argc, char** argv)
     memset(&reqbufs, 0, sizeof(reqbufs));
     reqbufs.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
     reqbufs.memory = inputMemoryType;
-    reqbufs.count = 2;
+    reqbufs.count = 8;
     ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_REQBUFS, &reqbufs);
     ASSERT(ioctlRet != -1);
     ASSERT(reqbufs.count>0);
