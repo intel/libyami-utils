@@ -105,7 +105,10 @@ bool EncodeInputFile::init(const char* inputFileName, uint32_t fourcc, int width
     case VA_FOURCC('I', '4', '2', '0'):
     case VA_FOURCC_YV12:
         m_frameSize = m_width * m_height * 3 / 2;
-    break;
+        break;
+    case VA_FOURCC_P010:
+        m_frameSize = m_width * m_height * 3;
+        break;
     case VA_FOURCC_YUY2:
         m_frameSize = m_width * m_height * 2;
     break;
