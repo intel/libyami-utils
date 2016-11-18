@@ -23,6 +23,7 @@ static int referenceMode = 0;
 static int idrInterval = 0;
 static int intraPeriod = 30;
 static int ipPeriod = 1;
+static int bitDepth = 8;
 static char *inputFileName = NULL;
 static char defaultOutputFile[] = "test.264";
 static char *outputFileName = defaultOutputFile;
@@ -61,8 +62,8 @@ static void print_help(const char* app)
     printf("   -o <coded file> optional\n");
     printf("   -b <bitrate: kbps> optional\n");
     printf("   -f <frame rate> optional\n");
-    printf("   -c <codec: AVC|VP8|VP9|JPEG>\n");
-    printf("   -s <fourcc: NV12|IYUV|YV12>\n");
+    printf("   -c <codec: HEVC|AVC|VP8|VP9|JPEG>\n");
+    printf("   -s <fourcc: NV12|IYUV|YV12|P010>\n");
     printf("   -N <number of frames to encode(camera default 50), useful for camera>\n");
     printf("   --qp <initial qp> optional\n");
     printf("   --rcmode <CBR|CQP> optional\n");
@@ -208,7 +209,7 @@ void ensureInputParameters()
 
 }
 
-void setEncoderParameters(VideoParamsCommon * encVideoParams)
+void setEncoderParameters(VideoParamsCommon* encVideoParams)
 {
     ensureInputParameters();
     //resolution
@@ -227,10 +228,10 @@ void setEncoderParameters(VideoParamsCommon * encVideoParams)
     encVideoParams->rcMode = rcMode;
     encVideoParams->numRefFrames = numRefFrames;
     encVideoParams->enableLowPower = enableLowPower;
+    encVideoParams->bitDepth = bitDepth;
     //encVideoParams->rcParams.minQP = 1;
 
     //encVideoParams->profile = VAProfileH264Main;
- //   encVideoParams->profile = VAProfileVP8Version0_3;
-
+    //encVideoParams->profile = VAProfileVP8Version0_3;
 }
 #endif

@@ -48,6 +48,7 @@ public:
     virtual bool isEOS() = 0;
     int getWidth() { return m_width;}
     int getHeight() { return m_height;}
+    uint32_t getFourcc() { return m_fourcc; }
 
 protected:
     uint32_t m_fourcc;

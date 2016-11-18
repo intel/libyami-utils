@@ -57,6 +57,8 @@ int main(int argc, char** argv)
 
     videoWidth = input->getWidth();
     videoHeight = input->getHeight();
+    if (YAMI_FOURCC_P010 == input->getFourcc())
+        bitDepth = 10;
 
     output = EncodeOutput::create(outputFileName, videoWidth, videoHeight, codec);
     if (!output) {
