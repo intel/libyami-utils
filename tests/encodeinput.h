@@ -24,7 +24,7 @@
 #include <Yami.h>
 #include "common/NonCopyable.h"
 #include <vector>
-#if ANDROID
+#ifdef ANDROID
 #include <gui/Surface.h>
 #include <android/native_window.h>
 #include <system/window.h>
@@ -108,7 +108,7 @@ private:
 
 };
 
-#if ANDROID
+#if defined(ANDROID)
 #define SURFACE_BUFFER_COUNT 5
 class EncodeInputSurface : public EncodeInput {
 public:

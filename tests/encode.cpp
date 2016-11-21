@@ -24,7 +24,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
-#if __ENABLE_X11__
+#if defined(__ENABLE_X11__)
 #include <X11/Xlib.h>
 #endif
 #include "common/log.h"

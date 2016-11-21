@@ -84,7 +84,7 @@ void fillV4L2InputBuffer(struct v4l2_buffer& buf, const VideoFrameRawData& frame
             buf.m.planes[i].m.userptr = data + frame.offset[i];
         }
     }
-#if ANDROID
+#ifdef ANDROID
     else if (inputMemoryType == V4L2_MEMORY_ANDROID_BUFFER_HANDLE) {
         // !!! FIXME, v4l2 use long for userptr. so bad
         DEBUG("ANativeWindowBuffer->handle: %p", (void*)frame.handle);
@@ -219,7 +219,7 @@ int main(int argc, char** argv)
     if (!process_cmdline(argc, argv))
         return -1;
 
-#if ANDROID
+#ifdef ANDROID
     if (!inputFileName) {
         inputMemoryType = (enum v4l2_memory)V4L2_MEMORY_ANDROID_BUFFER_HANDLE;
         inputFourcc = VA_FOURCC_NV12;
@@ -279,7 +279,7 @@ int main(int argc, char** argv)
     // set input buffer type
     {
     VideoDataMemoryType memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_POINTER;
-#if ANDROID
+#ifdef ANDROID
     if (inputMemoryType == V4L2_MEMORY_ANDROID_BUFFER_HANDLE)
         memoryType = VIDEO_DATA_MEMORY_TYPE_ANDROID_BUFFER_HANDLE;
 #endif

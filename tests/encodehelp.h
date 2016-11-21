@@ -178,7 +178,7 @@ static bool process_cmdline(int argc, char *argv[])
         }
     }
 
-#if !ANDROID
+#if !defined(ANDROID)
     if (!inputFileName) {
         fprintf(stderr, "can not encode without input file\n");
         return false;
