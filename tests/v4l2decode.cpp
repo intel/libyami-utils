@@ -32,15 +32,8 @@
 #include "common/utils.h"
 #include "decodeinput.h"
 #include "decodehelp.h"
-#if ANDROID
-#include <gui/SurfaceComposerClient.h>
-#include <va/va_android.h>
-#elif __ENABLE_WAYLAND__
-#include <wayland-client.h>
-#else
-#include "./egl/gles2_help.h"
-#endif
 #include "V4L2Device.h"
+#include "V4L2Renderer.h"
 
 #include <Yami.h>
 
@@ -48,82 +41,11 @@
     #define V4L2_EVENT_RESOLUTION_CHANGE 5
 #endif
 
-
-int videoWidth = 0;
-int videoHeight = 0;
-static const char* typeStrDrmName = "drm-name";
-static const char* typeStrDmaBuf = "dma-buf";
-static const char* typeStrRawData = "raw-data";
-#define IS_DRM_NAME()   (!strcmp(memoryTypeStr, typeStrDrmName))
-#define IS_DMA_BUF()   (!strcmp(memoryTypeStr, typeStrDmaBuf))
-#define IS_RAW_DATA()   (!strcmp(memoryTypeStr, typeStrRawData))
-#define IS_ANDROID_BUFFER_HANDLE()   (!strcmp(memoryTypeStr, typeStrAndroidBufferHandle))
-
+uint32_t videoWidth = 0;
+uint32_t videoHeight = 0;
 static enum v4l2_memory inputMemoryType = V4L2_MEMORY_MMAP;
-#if ANDROID
-static const char* typeStrAndroidBufferHandle = "android-buffer-handle";
-static VideoDataMemoryType memoryType = VIDEO_DATA_MEMORY_TYPE_ANDROID_BUFFER_HANDLE;
-static enum v4l2_memory outputMemoryType = (enum v4l2_memory) V4L2_MEMORY_ANDROID_BUFFER_HANDLE;
-static const char* memoryTypeStr = typeStrAndroidBufferHandle;
-#else
 static VideoDataMemoryType memoryType = VIDEO_DATA_MEMORY_TYPE_DRM_NAME;
 static enum v4l2_memory outputMemoryType = V4L2_MEMORY_MMAP;
-static const char* memoryTypeStr = typeStrDrmName;
-#endif
-
-#ifdef ANDROID
-
-#ifndef CHECK_EQ
-#define CHECK_EQ(a, b) do {                     \
-            if ((a) != (b)) {                   \
-                assert(0 && "assert fails");    \
-            }                                   \
-    } while (0)
-#endif
-
-sp<SurfaceComposerClient> mClient;
-sp<SurfaceControl> mSurfaceCtl;
-sp<Surface> mSurface;
-sp<ANativeWindow> mNativeWindow;
-
-std::vector <ANativeWindowBuffer*> mWindBuff;
-
-bool createNativeWindow(__u32 pixelformat)
-{
-    mClient = new SurfaceComposerClient();
-    mSurfaceCtl = mClient->createSurface(String8("testsurface"),
-                                      800, 600, pixelformat, 0);
-
-    // configure surface
-    SurfaceComposerClient::openGlobalTransaction();
-    mSurfaceCtl->setLayer(100000);
-    mSurfaceCtl->setPosition(100, 100);
-    mSurfaceCtl->setSize(800, 600);
-    SurfaceComposerClient::closeGlobalTransaction();
-
-    mSurface = mSurfaceCtl->getSurface();
-    mNativeWindow = mSurface;
-
-    CHECK_EQ(0,
-             native_window_set_usage(
-             mNativeWindow.get(),
-             GRALLOC_USAGE_SW_READ_NEVER | GRALLOC_USAGE_SW_WRITE_OFTEN
-             | GRALLOC_USAGE_HW_TEXTURE | GRALLOC_USAGE_EXTERNAL_DISP));
-
-    CHECK_EQ(0,
-             native_window_set_scaling_mode(
-             mNativeWindow.get(),
-             NATIVE_WINDOW_SCALING_MODE_SCALE_TO_WINDOW));
-
-    CHECK_EQ(0, native_window_set_buffers_dimensions(
-                mNativeWindow.get(),
-                videoWidth,
-                videoHeight));
-
-    return true;
-}
-#endif
-
 
 struct RawFrameData {
     uint32_t width;
@@ -145,17 +67,6 @@ uint32_t k_extraOutputFrameCount = 2;
 static std::vector<uint8_t*> inputFrames;
 static std::vector<struct RawFrameData> rawOutputFrames;
 
-static FILE* outfp = NULL;
-
-#if __ENABLE_X11__
-static Display * x11Display = NULL;
-static Window x11Window = 0;
-#endif
-#if __ENABLE_TESTS_GLES__
-static EGLContextType *eglContext = NULL;
-static std::vector<EGLImageKHR> eglImages;
-static std::vector<GLuint> textureIds;
-#endif
 static bool isReadEOS=false;
 static int32_t stagingBufferInDevice = 0;
 static uint32_t renderFrameCount = 0;
@@ -208,283 +119,6 @@ bool feedOneInputFrame(DecodeInput* input, const SharedPtr<V4L2Device>& device, 
     return true;
 }
 
-bool dumpOneVideoFrame(int32_t index)
-{
-    uint32_t row;
-
-    if (!outfp) {
-        char outFileName[256];
-        char* baseFileName = params.inputFile;
-        char* s = strrchr(params.inputFile, '/');
-        if (s)
-            baseFileName = s+1;
-        // V4L2 reports fourcc as NM12 (planar NV12), use hard code here
-        sprintf(outFileName, "%s/%s_%dx%d.NV12", params.outputFile.c_str(), baseFileName, rawOutputFrames[index].width, rawOutputFrames[index].height);
-        DEBUG("outFileName: %s", outFileName);
-        outfp = fopen(outFileName, "w+");
-    }
-
-    if (!outfp)
-        return false;
-
-    // Y plane
-    for (row=0; row<rawOutputFrames[index].height; row++) {
-        fwrite(rawOutputFrames[index].data + rawOutputFrames[index].offset[0] + rawOutputFrames[index].pitch[0] * row, rawOutputFrames[index].width, 1, outfp);
-    }
-    // UV plane
-    for (row=0; row<(rawOutputFrames[index].height+1)/2; row++) {
-        fwrite(rawOutputFrames[index].data + rawOutputFrames[index].offset[1] + rawOutputFrames[index].pitch[1] * row, (rawOutputFrames[index].width+1)/2*2, 1, outfp);
-    }
-
-    return true;
-}
-
-#ifdef ANDROID
-static bool displayOneVideoFrameAndroid(const SharedPtr<V4L2Device>& device, int32_t index)
-{
-    int32_t ioctlRet = -1;
-    struct v4l2_buffer buffer;
-    memset(&buffer, 0, sizeof(buffer));
-
-    if (mNativeWindow->queueBuffer(mNativeWindow.get(), mWindBuff[index], -1) != 0) {
-        fprintf(stderr, "queue buffer to native window failed\n");
-        return false;
-    }
-
-    ANativeWindowBuffer* pbuf = NULL;
-    status_t err = native_window_dequeue_buffer_and_wait(mNativeWindow.get(), &pbuf);
-    if (err != 0) {
-        fprintf(stderr, "dequeueBuffer failed: %s (%d)\n", strerror(-err), -err);
-        return false;
-    }
-
-    buffer.m.userptr = (unsigned long)pbuf;
-    buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-    uint32_t i;
-    for (i = 0; i < mWindBuff.size(); i++) {
-        if (pbuf == mWindBuff[i]) {
-            buffer.index = i;
-            break;
-        }
-    }
-    if (i == mWindBuff.size())
-        return false;
-
-    ioctlRet = device->ioctl(VIDIOC_QBUF, &buffer);
-    ASSERT(ioctlRet != -1);
-
-    return true;
-}
-
-#elif __ENABLE_WAYLAND__
-struct display {
-    SharedPtr<wl_display>        display;
-    SharedPtr<wl_compositor>     compositor;
-    SharedPtr<wl_shell>          shell;
-    SharedPtr<wl_shell_surface>  shell_surface;
-    SharedPtr<wl_surface>        surface;
-};
-
-struct bufstatus {
-    bool redrawPending;
-    struct wl_buffer *buffer;
-};
-
-static struct bufstatus redrawStatus;
-static struct display waylandDisplay;
-
-void registryHandle(
-    void                    *data,
-    struct wl_registry      *registry,
-    uint32_t                id,
-    const char              *interface,
-    uint32_t                version
-)
-{
-    struct display * d = (struct display * )data;
-
-    if (strcmp(interface, "wl_compositor") == 0)
-        d->compositor.reset((struct wl_compositor *)wl_registry_bind(registry, id,
-                                                   &wl_compositor_interface, 1), wl_compositor_destroy);
-    else if (strcmp(interface, "wl_shell") == 0)
-        d->shell.reset((struct wl_shell *)wl_registry_bind(registry, id,
-	                                               &wl_shell_interface, 1), wl_shell_destroy);
-}
-
-void frameRedrawCallback(void *data,
-	                                       struct wl_callback *callback, uint32_t time)
-{
-    struct bufstatus *redrawstatus = (struct bufstatus *)data;
-    redrawstatus->redrawPending = false;
-    if (redrawstatus->buffer)
-        wl_buffer_destroy (redrawstatus->buffer);
-    wl_callback_destroy(callback);
-}
-
-static struct wl_callback_listener frameCallbackListener = {frameRedrawCallback};
-
-bool ensureWindow(unsigned int width, unsigned int height)
-{
-    struct display * const d = &waylandDisplay;
-
-    if (!d->surface) {
-        d->surface.reset(wl_compositor_create_surface(d->compositor.get()), wl_surface_destroy);
-        if (!d->surface)
-            return false;
-    }
-
-    if (!d->shell_surface) {
-        d->shell_surface.reset(wl_shell_get_shell_surface(d->shell.get(), d->surface.get()),
-                                                                       wl_shell_surface_destroy);
-        if (!d->shell_surface)
-            return false;
-        wl_shell_surface_set_toplevel(d->shell_surface.get());
-    }
-    return true;
-}
-
-bool createWaylandDisplay()
-{
-    struct display *d = &waylandDisplay;
-    struct wl_registry_listener registry_listener = {
-        registryHandle,
-        NULL,
-    };
-
-    d->display.reset(wl_display_connect(NULL), wl_display_disconnect);
-    if (!d->display) {
-        return false;
-    }
-    wl_display_set_user_data(d->display.get(), d);
-    struct wl_registry *registry = wl_display_get_registry(d->display.get());
-    wl_registry_add_listener(registry, &registry_listener, d);
-    wl_display_dispatch(d->display.get());
-    redrawStatus.redrawPending = false;
-    return true;
-}
-
-bool vaPutSurfaceWayland(struct wl_buffer *buffer,
-                                              const VARectangle *srcRect,
-                                              const VARectangle *dstRect)
-{
-    struct wl_callback *callback;
-    struct display * const d = &waylandDisplay;
-
-    if (redrawStatus.redrawPending) {
-        wl_display_flush(d->display.get());
-        while (redrawStatus.redrawPending) {
-            wl_display_dispatch(d->display.get());
-        }
-    }
-
-    if (!ensureWindow(dstRect->width, dstRect->height))
-        return false;
-
-    wl_surface_attach(d->surface.get(), buffer, 0, 0);
-    wl_surface_damage(d->surface.get(), dstRect->x,
-		dstRect->y, dstRect->width, dstRect->height);
-    wl_display_flush(d->display.get());
-    redrawStatus.buffer = buffer;
-    redrawStatus.redrawPending = true;
-    callback = wl_surface_frame(d->surface.get());
-    wl_callback_add_listener(callback, &frameCallbackListener,&redrawStatus);
-    wl_surface_commit(d->surface.get());
-    return true;
-}
-
-bool output(struct wl_buffer *buffer)
-{
-    VARectangle srcRect, dstRect;
-    if (!ensureWindow(videoWidth, videoHeight))
-        return false;
-
-    srcRect.x = 0;
-    srcRect.y = 0;
-    srcRect.width  = videoWidth;
-    srcRect.height = videoHeight;
-
-    dstRect.x = 0;
-    dstRect.y = 0;
-    dstRect.width  = videoWidth;
-    dstRect.height = videoHeight;
-    return vaPutSurfaceWayland(buffer, &srcRect, &dstRect);
-}
-
-static bool displayOneVideoFrameWayland(const SharedPtr<V4L2Device>& device, struct v4l2_buffer* buf)
-{
-    int32_t ioctlRet = -1;
-    struct v4l2_buffer buffer;
-
-    output((struct wl_buffer *)(buf->m.userptr));
-    memset(&buffer, 0, sizeof(buffer));
-    buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-    buffer.index = (buf->index) ? (buf->index - 1): (outputQueueCapacity - 1);
-    ioctlRet = device->ioctl(VIDIOC_QBUF, &buffer);
-    ASSERT(ioctlRet != -1);
-    return true;
-}
-#elif __ENABLE_TESTS_GLES__
-bool displayOneVideoFrameEGL(const SharedPtr<V4L2Device>& device, int32_t index)
-{
-    ASSERT(eglContext && textureIds.size());
-    ASSERT(index>=0 && (uint32_t)index<textureIds.size());
-    DEBUG("textureIds[%d] = 0x%x", index, textureIds[index]);
-
-    GLenum target = GL_TEXTURE_2D;
-    if (IS_DMA_BUF())
-        target = GL_TEXTURE_EXTERNAL_OES;
-    int ret = drawTextures(eglContext, target, &textureIds[index], 1);
-
-    return ret == 0;
-}
-#endif
-
-bool takeOneOutputFrame(const SharedPtr<V4L2Device>& device, int index = -1 /* if index is not -1, simple enque it*/)
-{
-    struct v4l2_buffer buf;
-    struct v4l2_plane planes[k_maxOutputPlaneCount]; // YUV output, in fact, we use NV12 of 2 planes
-    int ioctlRet = -1;
-    bool ret = true;
-
-    memset(&buf, 0, sizeof(buf));
-    memset(&planes, 0, sizeof(planes));
-    buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE; //it indicates output buffer type
-    buf.memory = outputMemoryType;
-    buf.m.planes = planes;
-    buf.length = outputPlaneCount;
-
-    if (index == -1) {
-        ioctlRet = device->ioctl(VIDIOC_DQBUF, &buf);
-        if (ioctlRet == -1)
-            return false;
-
-        renderFrameCount++;
-#ifdef ANDROID
-        ret = displayOneVideoFrameAndroid(device, buf.index);
-#elif __ENABLE_WAYLAND__
-        ret = displayOneVideoFrameWayland(device, &buf);
-#else
-#ifdef __ENABLE_TESTS_GLES__
-        if (IS_DMA_BUF() || IS_DRM_NAME())
-            ret = displayOneVideoFrameEGL(device, buf.index);
-#endif
-        if (IS_RAW_DATA())
-            ret = dumpOneVideoFrame(buf.index);
-#endif
-        // ASSERT(ret);
-        if (!ret) {
-            ERROR("display frame failed");
-        }
-    } else {
-        buf.index = index;
-    }
-#if (!defined(ANDROID) && !defined(__ENABLE_WAYLAND__))
-    ioctlRet = device->ioctl(VIDIOC_QBUF, &buf);
-    ASSERT(ioctlRet != -1);
-#endif
-    INFO("renderFrameCount: %d", renderFrameCount);
-    return true;
-}
 
 bool handleResolutionChange(const SharedPtr<V4L2Device>& device)
 {
@@ -528,28 +162,24 @@ int main(int argc, char** argv)
     int32_t ioctlRet = -1;
     YamiMediaCodec::CalcFps calcFps;
 
-#if (defined (__ENABLE_X11__) && !defined(__ENABLE_WAYLAND__))
-    XInitThreads();
-#endif
-
     if (!processCmdLine(argc, argv, &params))
         return -1;
 
     switch (params.renderMode) {
     case 0:
         memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_COPY;
-        memoryTypeStr = typeStrRawData;
     break;
     case 3:
         memoryType = VIDEO_DATA_MEMORY_TYPE_DRM_NAME;
-        memoryTypeStr = typeStrDrmName;
     break;
     case 4:
         memoryType = VIDEO_DATA_MEMORY_TYPE_DMA_BUF;
-        memoryTypeStr = typeStrDmaBuf;
+        break;
+    case 6:
+        memoryType = VIDEO_DATA_MEMORY_TYPE_EXTERNAL_DMA_BUF;
     break;
     default:
-        ASSERT(0 && "unsupported render mode, -m [0,3,4] are supported");
+        ASSERT(0 && "unsupported render mode, -m [0,3,4, 6] are supported");
     break;
     }
 
@@ -564,6 +194,11 @@ int main(int argc, char** argv)
         ERROR("failed to create v4l2 device");
         return -1;
     }
+    SharedPtr<V4L2Renderer> renderer = V4L2Renderer::create(device, memoryType);
+    if (!renderer) {
+        ERROR("unsupported render mode %d, please check your build configuration", memoryType);
+        return -1;
+    }
 
     renderFrameCount = 0;
     calcFps.setAnchor();
@@ -572,18 +207,13 @@ int main(int argc, char** argv)
         ERROR("open decode failed");
         return -1;
     }
-#if __ENABLE_WAYLAND__
-    createWaylandDisplay();
-    ioctlRet = device->setWaylandDisplay(waylandDisplay.display.get())
-#elif __ENABLE_X11__
-    x11Display = XOpenDisplay(NULL);
-    ASSERT(x11Display);
-    DEBUG("x11display: %p", x11Display);
-    ioctlRet = device->setXDisplay(x11Display);
-#endif
-                   ASSERT(ioctlRet != -1);
 
     ioctlRet = device->setFrameMemoryType(memoryType);
+
+    if (!renderer->setDisplay()) {
+        ERROR("set display failed");
+        return -1;
+    }
 
     // query hw capability
     struct v4l2_capability caps;
@@ -693,180 +323,9 @@ int main(int argc, char** argv)
     videoWidth = format.fmt.pix_mp.width;
     videoHeight = format.fmt.pix_mp.height;
     ASSERT(videoWidth && videoHeight);
+    bool ret = renderer->setupOutputBuffers(videoWidth, videoHeight);
+    ASSERT(ret && "setupOutputBuffers failed");
 
-#ifdef ANDROID
-    __u32 pixelformat = format.fmt.pix_mp.pixelformat;
-    if (!createNativeWindow(pixelformat)) {
-        fprintf(stderr, "create native window error\n");
-        return -1;
-    }
-
-    int minUndequeuedBuffs = 0;
-    status_t err = mNativeWindow->query(mNativeWindow.get(), NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS, &minUndequeuedBuffs);
-    if (err != 0) {
-        fprintf(stderr, "query native window min undequeued buffers error\n");
-        return err;
-    }
-#endif
-
-    // setup output buffers
-    // Number of output buffers we need.
-    struct v4l2_control ctrl;
-    memset(&ctrl, 0, sizeof(ctrl));
-    ctrl.id = V4L2_CID_MIN_BUFFERS_FOR_CAPTURE;
-    ioctlRet = device->ioctl(VIDIOC_G_CTRL, &ctrl);
-#ifndef ANDROID
-    uint32_t minOutputFrameCount = ctrl.value + k_extraOutputFrameCount;
-#else
-    uint32_t minOutputFrameCount = ctrl.value + k_extraOutputFrameCount + minUndequeuedBuffs;
-#endif
-
-    memset(&reqbufs, 0, sizeof(reqbufs));
-    reqbufs.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-    reqbufs.memory = outputMemoryType;
-    reqbufs.count = minOutputFrameCount;
-    ioctlRet = device->ioctl(VIDIOC_REQBUFS, &reqbufs);
-    ASSERT(ioctlRet != -1);
-    ASSERT(reqbufs.count>0);
-    outputQueueCapacity = reqbufs.count;
-
-#if (defined (__ENABLE_X11__) && !defined(__ENABLE_WAYLAND__))
-    if (!IS_RAW_DATA()) {
-        x11Window = XCreateSimpleWindow(x11Display, DefaultRootWindow(x11Display)
-            , 0, 0, videoWidth, videoHeight, 0, 0
-            , WhitePixel(x11Display, 0));
-        XMapWindow(x11Display, x11Window);
-        textureIds.resize(outputQueueCapacity);
-    }
-#endif
-#if (!defined(ANDROID) && !defined(__ENABLE_WAYLAND__))
-    if (IS_RAW_DATA()) {
-        rawOutputFrames.resize(outputQueueCapacity);
-        for (i=0; i<outputQueueCapacity; i++) {
-            struct v4l2_plane planes[k_maxOutputPlaneCount];
-            struct v4l2_buffer buffer;
-            memset(&buffer, 0, sizeof(buffer));
-            memset(planes, 0, sizeof(planes));
-            buffer.index = i;
-            buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-            buffer.memory = outputMemoryType;
-            buffer.m.planes = planes;
-            buffer.length = outputPlaneCount;
-            ioctlRet = device->ioctl(VIDIOC_QUERYBUF, &buffer);
-            ASSERT(ioctlRet != -1);
-
-            rawOutputFrames[i].width = format.fmt.pix_mp.width;
-            rawOutputFrames[i].height = format.fmt.pix_mp.height;
-            rawOutputFrames[i].fourcc = format.fmt.pix_mp.pixelformat;
-
-            for (int j=0; j<outputPlaneCount; j++) {
-                // length and mem_offset are filled by VIDIOC_QUERYBUF above
-                void* address = device->mmap(NULL,
-                    buffer.m.planes[j].length,
-                    PROT_READ | PROT_WRITE,
-                    MAP_SHARED,
-                    buffer.m.planes[j].m.mem_offset);
-                ASSERT(address);
-                if (j == 0) {
-                    rawOutputFrames[i].data = static_cast<uint8_t*>(address);
-                    rawOutputFrames[i].offset[0] = 0;
-                } else {
-                    rawOutputFrames[i].offset[j] = static_cast<uint8_t*>(address) - rawOutputFrames[i].data;
-                }
-
-                rawOutputFrames[i].pitch[j] = format.fmt.pix_mp.plane_fmt[j].bytesperline;
-            }
-        }
-    }
-#if __ENABLE_TESTS_GLES__
-    if (IS_DMA_BUF() || IS_DRM_NAME()) {
-        // setup all textures and eglImages
-        eglImages.resize(outputQueueCapacity);
-
-        if (!eglContext)
-            eglContext = eglInit(x11Display, x11Window, 0 /*VA_FOURCC_RGBA*/, IS_DMA_BUF());
-
-        glGenTextures(outputQueueCapacity, &textureIds[0] );
-        for (i=0; i<outputQueueCapacity; i++) {
-             int ret = 0;
-             ret = device->useEglImage(eglContext->eglContext.display, eglContext->eglContext.context, i, &eglImages[i]);
-             ASSERT(ret == 0);
-
-             GLenum target = GL_TEXTURE_2D;
-             if (IS_DMA_BUF())
-                 target = GL_TEXTURE_EXTERNAL_OES;
-             glBindTexture(target, textureIds[i]);
-             imageTargetTexture2D(target, eglImages[i]);
-
-             glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-             glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-             DEBUG("textureIds[%d]: 0x%x, eglImages[%d]: 0x%p", i, textureIds[i], i, eglImages[i]);
-        }
-#endif
-    }
-#endif
-#if __ENABLE_WAYLAND__
-    struct v4l2_buffer buffer;
-    //queue buffs
-    for (uint32_t i = 0; i < outputQueueCapacity; i++) {
-        memset(&buffer, 0, sizeof(buffer));
-        buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-        buffer.index = i;
-        ioctlRet = device->ioctl(VIDIOC_QBUF, &buffer);
-        ASSERT(ioctlRet != -1);
-    }
-#else
-#ifndef ANDROID
-    // feed output frames first
-    for (i=0; i<outputQueueCapacity; i++) {
-        if (!takeOneOutputFrame(device, i)) {
-            ASSERT(0);
-        }
-    }
-#else
-    struct v4l2_buffer buffer;
-
-    err = native_window_set_buffer_count(mNativeWindow.get(), outputQueueCapacity);
-    if (err != 0) {
-        fprintf(stderr, "native_window_set_buffer_count failed: %s (%d)", strerror(-err), -err);
-        return -1;
-    }
-
-    //queue buffs
-    for (uint32_t i = 0; i < outputQueueCapacity; i++) {
-        ANativeWindowBuffer* pbuf = NULL;
-        memset(&buffer, 0, sizeof(buffer));
-
-        err = native_window_dequeue_buffer_and_wait(mNativeWindow.get(), &pbuf);
-        if (err != 0) {
-            fprintf(stderr, "dequeueBuffer failed: %s (%d)\n", strerror(-err), -err);
-            return -1;
-        }
-
-        buffer.m.userptr = (unsigned long)pbuf->handle;
-        buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-        buffer.index = i;
-
-        ioctlRet = device->ioctl(VIDIOC_QBUF, &buffer);
-        ASSERT(ioctlRet != -1);
-        mWindBuff.push_back(pbuf);
-    }
-
-    for (uint32_t i = 0; i < minUndequeuedBuffs; i++) {
-        memset(&buffer, 0, sizeof(buffer));
-        buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-
-        ioctlRet = device->ioctl(VIDIOC_DQBUF, &buffer);
-        ASSERT(ioctlRet != -1);
-
-        err = mNativeWindow->cancelBuffer(mNativeWindow.get(), mWindBuff[buffer.index], -1);
-        if (err) {
-            fprintf(stderr, "queue empty window buffer error\n");
-            return -1;
-        }
-    }
-#endif
-#endif
     // output port starts as late as possible to adopt user provide output buffer
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
     ioctlRet = device->ioctl(VIDIOC_STREAMON, &type);
@@ -879,7 +338,7 @@ int main(int argc, char** argv)
             handleResolutionChange(device);
         }
 
-        takeOneOutputFrame(device);
+        renderer->renderOneFrame();
         if (!feedOneInputFrame(input, device)) {
             if (stagingBufferInDevice == 0)
                 break;
@@ -887,11 +346,12 @@ int main(int argc, char** argv)
         }
         if (dqCountAfterEOS == inputQueueCapacity)  // input drain
             break;
+
     } while (device->poll(true, &event_pending) == 0);
 
     // drain output buffer
     int retry = 3;
-    while (takeOneOutputFrame(device) || (--retry) > 0) { // output drain
+    while (renderer->renderOneFrame() || (--retry) > 0) { // output drain
         usleep(10000);
     }
 
@@ -923,28 +383,6 @@ int main(int argc, char** argv)
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
     ioctlRet = device->ioctl(VIDIOC_STREAMOFF, &type);
     ASSERT(ioctlRet != -1);
-#if __ENABLE_TESTS_GLES__
-    if(textureIds.size())
-        glDeleteTextures(textureIds.size(), &textureIds[0]);
-    ASSERT(glGetError() == GL_NO_ERROR);
-    for (i=0; i<eglImages.size(); i++) {
-        destroyImage(eglContext->eglContext.display, eglImages[i]);
-    }
-    /*
-    there is still randomly fail in mesa; no good idea for it. seems mesa bug
-    0  0x00007ffff079c343 in _mesa_symbol_table_dtor () from /usr/lib/x86_64-linux-gnu/libdricore9.2.1.so.1
-    1  0x00007ffff073c55d in glsl_symbol_table::~glsl_symbol_table() () from /usr/lib/x86_64-linux-gnu/libdricore9.2.1.so.1
-    2  0x00007ffff072a4d5 in ?? () from /usr/lib/x86_64-linux-gnu/libdricore9.2.1.so.1
-    3  0x00007ffff072a4bd in ?? () from /usr/lib/x86_64-linux-gnu/libdricore9.2.1.so.1
-    4  0x00007ffff064b48f in _mesa_reference_shader () from /usr/lib/x86_64-linux-gnu/libdricore9.2.1.so.1
-    5  0x00007ffff0649397 in ?? () from /usr/lib/x86_64-linux-gnu/libdricore9.2.1.so.1
-    6  0x000000000040624d in releaseShader (program=0x77cd90) at ./egl/gles2_help.c:158
-    7  eglRelease (context=0x615920) at ./egl/gles2_help.c:310
-    8  0x0000000000402ca8 in main (argc=<optimized out>, argv=<optimized out>) at v4l2decode.cpp:531
-    */
-    if (eglContext)
-        eglRelease(eglContext);
-#endif
 
     // close device
     ioctlRet = device->close();
@@ -952,16 +390,6 @@ int main(int argc, char** argv)
 
     if(input)
         delete input;
-
-    if (outfp)
-        fclose(outfp);
-
-#if (defined (__ENABLE_X11__) && !defined(__ENABLE_WAYLAND__))
-    if (x11Display && x11Window)
-        XDestroyWindow(x11Display, x11Window);
-    if (x11Display)
-        XCloseDisplay(x11Display);
-#endif
 
     fprintf(stdout, "decode done\n");
     return 0;
