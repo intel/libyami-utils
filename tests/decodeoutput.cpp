@@ -670,7 +670,7 @@ EGLImageKHR DecodeOutputDmabuf::createEGLImage(SharedPtr<VideoFrame>& frame)
     else if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF)
         m_bufferInfo.mem_type = VA_SURFACE_ATTRIB_MEM_TYPE_DRM_PRIME;
     status = vaAcquireBufferHandle(*m_vaDisplay, image.buf, &m_bufferInfo);
-    if (!checkVaapiStatus(status, "vaDeriveImage")) {
+    if (!checkVaapiStatus(status, "vaAcquireBufferHandle")) {
         vaDestroyImage(*m_vaDisplay, image.image_id);
         return eglImage;
     }
