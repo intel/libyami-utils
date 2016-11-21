@@ -45,7 +45,8 @@ struct TypeEntry {
 const static TypeEntry g_entrys[] = {
     { VIDEO_DATA_MEMORY_TYPE_DRM_NAME, "drm-name" },
     { VIDEO_DATA_MEMORY_TYPE_DMA_BUF, "dma-buf" },
-    { VIDEO_DATA_MEMORY_TYPE_ANDROID_BUFFER_HANDLE, "android-buffer-handle" }
+    { VIDEO_DATA_MEMORY_TYPE_ANDROID_BUFFER_HANDLE, "android-buffer-handle" },
+    { VIDEO_DATA_MEMORY_TYPE_EXTERNAL_DMA_BUF, "external-dma-buf" }
 
 };
 

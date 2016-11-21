@@ -43,12 +43,13 @@ static void printHelp(const char* app)
     printf("   -m <render mode>\n");
     printf("     -2: print MD5 by per frame and the whole decoded file MD5\n");
     printf("     -1: skip video rendering [*]\n");
-    printf("      0: dump video frame to file\n");
+    printf("      0: dump video frame to file [*]\n");
     printf("      1: render to X window [*]\n");
     printf("      2: texture: render to Pixmap + texture from Pixmap [*]\n");
     printf("      3: texture: export video frame as drm name (RGBX) + texture from drm name\n");
     printf("      4: texture: export video frame as dma_buf(RGBX) + texutre from dma_buf\n");
     printf("      5: texture: export video frame as dma_buf(NV12) + texture from dma_buf. not implement yet\n");
+    printf("      6: use external dma buf for decode and display, only v4l2decode support this\n");
     printf(" [*] v4l2decode doesn't support the option\n");
     printf("  --capi: use the codec capi to encode or decode, default(false)\n");
 }
