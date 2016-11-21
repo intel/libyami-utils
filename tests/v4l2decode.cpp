@@ -751,16 +751,18 @@ int main(int argc, char** argv)
     // query video resolution
     memset(&format, 0, sizeof(format));
     format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+    // decoding runs in another thread, wait until video info is got before continue
     while (1) {
-        if (SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_G_FMT, &format) != 0) {
-            if (errno != EINVAL) {
-                // EINVAL means we haven't seen sufficient stream to decode the format.
-                INFO("ioctl() failed: VIDIOC_G_FMT, haven't get video resolution during start yet, waiting");
-            }
-        } else {
+        ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_G_FMT, &format) ;
+        if (ioctlRet == 0)
             break;
+        
+        if (ioctlRet == EAGAIN) {
+            INFO("ioctl() failed: VIDIOC_G_FMT, haven't get video resolution during start yet, waiting");
+        } else {
+            WARNING("ioctl fail to get VIDIOC_G_FMT");
         }
-        usleep(50);
+        usleep(5000);
     }
     outputPlaneCount = format.fmt.pix_mp.num_planes;
     ASSERT(outputPlaneCount == 2);
