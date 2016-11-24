@@ -39,7 +39,7 @@ static void printHelp(const char* app)
     printf("   -w wait before quit: 0:no-wait, 1:auto(jpeg wait), 2:wait\n");
     printf("   -f dumped fourcc [*]\n");
     printf("   -o dumped output dir\n");
-    printf("   -n specifiy how many frames to be decoded\n");
+    printf("   -n specify how many frames to be decoded\n");
     printf("   -m <render mode>\n");
     printf("     -2: print MD5 by per frame and the whole decoded file MD5\n");
     printf("     -1: skip video rendering [*]\n");
