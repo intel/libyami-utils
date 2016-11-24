@@ -60,7 +60,7 @@ int main(int argc, char** argv)
 
     output = EncodeOutput::create(outputFileName, videoWidth, videoHeight, codec);
     if (!output) {
-        fprintf (stderr, "fail to init ouput stream\n");
+        fprintf (stderr, "fail to init output stream\n");
         delete input;
         return -1;
     }

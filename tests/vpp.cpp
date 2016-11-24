@@ -66,7 +66,7 @@ SharedPtr<VppOutput> createOutput(const char* filename, const SharedPtr<VADispla
         nativeDisplay.type = NATIVE_DISPLAY_VA;
         nativeDisplay.handle = (intptr_t)*display;
         if (!outputEncode->config(nativeDisplay)) {
-            ERROR("config ouput encode failed");
+            ERROR("config output encode failed");
             output.reset();
         }
         return output;
