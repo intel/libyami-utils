@@ -330,6 +330,10 @@ int main(int argc, char** argv)
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
     ioctlRet = device->ioctl(VIDIOC_STREAMON, &type);
     ASSERT(ioctlRet != -1);
+//#define SEEK_POS  500
+#ifdef SEEK_POS
+    uint32_t frames = 0;
+#endif
 
     bool event_pending=true; // try to get video resolution.
     uint32_t dqCountAfterEOS = 0;
@@ -347,6 +351,39 @@ int main(int argc, char** argv)
         if (dqCountAfterEOS == inputQueueCapacity)  // input drain
             break;
 
+#ifdef SEEK_POS
+        frames++;
+        if (frames == SEEK_POS) {
+            delete input;
+            input = DecodeInput::create(params.inputFile);
+            if (input == NULL) {
+                ERROR("fail to init input stream\n");
+                return -1;
+            }
+
+            type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+            ioctlRet = device->ioctl(VIDIOC_STREAMOFF, &type);
+            ASSERT(ioctlRet != -1);
+
+            type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
+            ioctlRet = device->ioctl(VIDIOC_STREAMOFF, &type);
+            ASSERT(ioctlRet != -1);
+            stagingBufferInDevice = 0;
+
+            type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
+            ioctlRet = device->ioctl(VIDIOC_STREAMON, &type);
+            ASSERT(ioctlRet != -1);
+
+            for (i = 0; i < inputQueueCapacity; i++) {
+                if (!feedOneInputFrame(input, device, i)) {
+                    break;
+                }
+            }
+            type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+            ioctlRet = device->ioctl(VIDIOC_STREAMON, &type);
+            renderer->queueOutputBuffers();
+        }
+#endif
     } while (device->poll(true, &event_pending) == 0);
 
     // drain output buffer
