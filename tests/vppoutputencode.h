@@ -52,6 +52,7 @@ public:
     uint32_t priorityId; // h264 priority_id in prefix nal unit
     EncodeParamsVP9 m_encParamsVP9;
     uint32_t layerBitRate[4]; // specify each scalable layer bitrate
+    bool enableLowPower;
 };
 
 class TranscodeParams
