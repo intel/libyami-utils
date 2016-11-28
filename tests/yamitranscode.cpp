@@ -62,6 +62,7 @@ static void print_help(const char* app)
     printf("   --btl1 <svc-t layer 1 bitrate: kbps > optional\n");
     printf("   --btl2 <svc-t layer 2 bitrate: kbps> optional\n");
     printf("   --btl3 <svc-t layer 3 bitrate: kbps> optional\n");
+    printf("   --lowpower <Enable AVC low power mode (default 0, Disabled)> optional\n");
     printf("   VP9 encoder specific options:\n");
     printf("   --refmode <VP9 Reference frames mode (default 0 last(previous), "
            "gold/alt (previous key frame) | 1 last (previous) gold (one before "
@@ -109,6 +110,7 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
         {"btl1", required_argument, NULL, 0 },
         {"btl2", required_argument, NULL, 0 },
         {"btl3", required_argument, NULL, 0 },
+        {"lowpower", no_argument, NULL, 0 },
         {NULL, no_argument, NULL, 0 }};
     int option_index;
 
@@ -219,6 +221,9 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
                     break;
                 case 21:
                     para.m_encParams.layerBitRate[3] = atoi(optarg) * 1024;//kbps to bps;
+                    break;
+                case 22:
+                    para.m_encParams.enableLowPower = true;
                     break;
             }
         }

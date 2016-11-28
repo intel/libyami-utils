@@ -43,6 +43,7 @@ EncodeParams::EncodeParams()
     , diffQPIB(0)
     , temporalLayerNum(1)
     , priorityId(0)
+    , enableLowPower(false)
 {
     memset(layerBitRate, 0, sizeof(layerBitRate));
 }
@@ -108,6 +109,7 @@ static void setEncodeParam(const SharedPtr<IVideoEncoder>& encoder,
     encVideoParams.rcParams.diffQPIB = encParam->diffQPIB;
     encVideoParams.rcMode = encParam->rcMode;
     encVideoParams.numRefFrames = encParam->numRefFrames;
+    encVideoParams.enableLowPower = encParam->enableLowPower;
     memcpy(encVideoParams.rcParams.layerBitRate, encParam->layerBitRate,
            sizeof(encParam->layerBitRate));
     encVideoParams.size = sizeof(VideoParamsCommon);
