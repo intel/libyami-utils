@@ -43,6 +43,7 @@ EncodeParams::EncodeParams()
     , diffQPIB(0)
     , temporalLayerNum(1)
     , priorityId(0)
+    , enableSimucast(false)
 {
     memset(layerBitRate, 0, sizeof(layerBitRate));
 }
@@ -136,6 +137,8 @@ static void setEncodeParam(const SharedPtr<IVideoEncoder>& encoder,
 #endif
         encVideoParamsAVC.temporalLayerNum = encParam->temporalLayerNum;
         encVideoParamsAVC.priorityId = encParam->priorityId;
+        if (encParam->priorityId || encParam->enableSimucast)
+            encVideoParamsAVC.enablePrefixNalUnit = true;
 
         encoder->setParameters(VideoParamsTypeAVC, &encVideoParamsAVC);
 
