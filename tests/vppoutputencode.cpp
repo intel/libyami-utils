@@ -55,6 +55,7 @@ TranscodeParams::TranscodeParams()
     , oWidth(0)
     , oHeight(0)
     , fourcc(VA_FOURCC_NV12)
+    , startupSize(0)
 {
     /*nothing to do*/
 }
