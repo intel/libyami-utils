@@ -1,0 +1,21 @@
+.TH YAMIDECODE "1" "October 2016" "yamiencode" "User Commands"
+.SH NAME
+yamiencode \- encode application based on libyami
+.SH DESCRIPTION
+This program encode the raw YUV file to video bitstream
+.SH OPTIONS
+-i <source yuv filename> load YUV from a file
+-W <width> -H <height>
+-o <coded file> optional
+-b <bitrate: kbps> optional
+-f <frame rate> optional
+-c <codec: AVC|VP8|VP9|JPEG>
+-s <fourcc: NV12|IYUV|YV12>
+-N <number of frames to encode(camera default 50), useful for camera>
+--qp <initial qp> optional
+--rcmode <CBR|CQP> optional
+--ipperiod <0 (I frame only) | 1 (I and P frames) | N (I,P and B frames, B frame number is N-1)> optional
+--intraperiod <Intra frame period (default 30)> optional
+--refnum <number of referece frames(default 1)> optional
+--idrinterval <AVC/HEVC IDR frame interval (default 0)> optional
+--lowpower <Enable AVC low power mode (default 0, Disabled)> optional

@@ -22,4 +22,4 @@ DISTCLEANFILES = \
 	configure config.h.in config.h.in~ depcomp install-sh ltmain.sh \
 	Makefile.in missing
 
-SUBDIRS = examples tests testscripts
+SUBDIRS = examples tests testscripts doc

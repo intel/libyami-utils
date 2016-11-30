@@ -1,0 +1,35 @@
+.TH YAMITRANSCODE "1" "October 2016" "yamitranscode" "User Commands"
+.SH NAME
+yamitranscode \- transcode application base on libyami
+.SH DESCRIPTION
+This program transcode video bitstream to different codec.
+.SH OPTIONS
+-i <source filename> load a raw yuv file or a compressed video file
+-W <width> -H <height>
+-o <coded file> optional
+-b <bitrate: kbps> optional
+-f <frame rate> optional
+-c <codec: HEVC|AVC|VP8|JPEG>
+-s <fourcc: I420|NV12|IYUV|YV12>
+-N <number of frames to encode(camera default 50), useful for camera>
+-t <AVC scalability temporal layer number  (default 1)> optional
+--qp <initial qp> optional
+--rcmode <CBR|CQP> optional
+--ipperiod <0 (I frame only) | 1 (I and P frames) | N (I,P and B frames, B frame number is N-1)> optional
+--intraperiod <Intra frame period(default 30)> optional
+--refnum <number of referece frames(default 1)> optional
+--idrinterval <AVC/HEVC IDR frame interval(default 0)> optional
+--disable-cabac <AVC is to use CABAC or not, for Main and High Profile, default is enabled
+--enable-dct8x8 <AVC is to use DCT8x8 or not, for High Profile, default is disabled
+--disable-deblock <AVC is to use Deblock or not, default is enabled
+--deblockalphadiv2 <AVC Alpha offset of debloking filter divided 2 (default 2)> optional
+--deblockbetadiv2 <AVC Beta offset of debloking filter divided 2 (default 2)> optional
+--qpip <qp difference between adjacent I/P (default 0)> optional
+--qpib <qp difference between adjacent I/B (default 0)> optional
+--priorityid <AVC priority_id of prefix nal unit (default 0)> optional
+--ow <output width> optional
+--oh <output height> optional
+--btl0 <svc-t layer 0 bitrate: kbps> optional
+--btl1 <svc-t layer 1 bitrate: kbps > optional
+--btl2 <svc-t layer 2 bitrate: kbps> optional
+--btl3 <svc-t layer 3 bitrate: kbps> optional
