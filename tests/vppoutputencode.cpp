@@ -44,6 +44,7 @@ EncodeParams::EncodeParams()
     , temporalLayerNum(1)
     , priorityId(0)
     , enableLowPower(false)
+    , bitDepth(8)
 {
     memset(layerBitRate, 0, sizeof(layerBitRate));
 }
@@ -55,19 +56,20 @@ TranscodeParams::TranscodeParams()
     , iHeight(0)
     , oWidth(0)
     , oHeight(0)
-    , fourcc(VA_FOURCC_NV12)
+    , fourcc(0)
 {
     /*nothing to do*/
 }
 
-bool VppOutputEncode::init(const char* outputFileName, uint32_t /*fourcc*/,
-                           int width, int height, const char* codecName)
+bool VppOutputEncode::init(const char* outputFileName, uint32_t fourcc,
+    int width, int height, const char* codecName)
 {
     if(!width || !height)
         if (!guessResolution(outputFileName, width, height))
             return false;
-
-    m_fourcc = VA_FOURCC('N', 'V', '1', '2');
+    if (YAMI_FOURCC_P010 != fourcc)
+        fourcc = YAMI_FOURCC_NV12;
+    m_fourcc = fourcc;
     m_width = width;
     m_height = height;
     m_output.reset(EncodeOutput::create(outputFileName, m_width, m_height, codecName));
@@ -110,6 +112,7 @@ static void setEncodeParam(const SharedPtr<IVideoEncoder>& encoder,
     encVideoParams.rcMode = encParam->rcMode;
     encVideoParams.numRefFrames = encParam->numRefFrames;
     encVideoParams.enableLowPower = encParam->enableLowPower;
+    encVideoParams.bitDepth = encParam->bitDepth;
     memcpy(encVideoParams.rcParams.layerBitRate, encParam->layerBitRate,
            sizeof(encParam->layerBitRate));
     encVideoParams.size = sizeof(VideoParamsCommon);

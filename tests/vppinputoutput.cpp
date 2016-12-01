@@ -104,11 +104,12 @@ static bool guessFormat(const char* filename, uint32_t& fourcc, int& width, int&
             return false;
         }
     }
-    if (!fourcc)
+    if (!fourcc) {
         fourcc = guessFourcc(filename);
+        if (!fourcc)
+            fourcc = YAMI_FOURCC_I420;
+    }
 
-    if (!fourcc)
-        fourcc = VA_FOURCC('I', '4', '2', '0');
     return true;
 }
 
@@ -181,7 +182,6 @@ SharedPtr<VppOutput> VppOutput::create(const char* outputFileName,
     return output;
 }
 
-
 bool VppOutput::getFormat(uint32_t& fourcc, int& width, int& height)
 {
     fourcc = m_fourcc;
@@ -193,17 +193,29 @@ bool VppOutput::getFormat(uint32_t& fourcc, int& width, int& height)
 bool VppOutputFile::init(const char* outputFileName, uint32_t fourcc, int width,
                          int height, const char* /*codecName*/)
 {
+    uint32_t outputFourcc = 0x00;
     if (!outputFileName) {
         ERROR("output file name is null");
         return false;
     }
-    if (!fourcc || !width || !height) {
-        if (!guessFormat(outputFileName, fourcc, width, height)) {
-            ERROR("can't guess format from %s", outputFileName);
+    if (!width || !height) {
+        if (!guessResolution(outputFileName, width, height)) {
+            ERROR("failed to guess file(%s) width and height\n", outputFileName);
             return false;
         }
     }
-    m_fourcc = fourcc;
+
+    outputFourcc = guessFourcc(outputFileName);
+    if (outputFourcc)
+        m_fourcc = outputFourcc;
+    else if (!fourcc) {
+        m_fourcc = YAMI_FOURCC_NV12;
+        WARNING("use default fourcc: YAMI_FOURCC_NV12");
+    }
+    else {
+        m_fourcc = fourcc;
+    }
+
     m_width = width;
     m_height = height;
     m_fp = fopen(outputFileName, "wb");
