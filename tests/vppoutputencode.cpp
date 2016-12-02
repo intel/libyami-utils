@@ -61,6 +61,7 @@ TranscodeParams::TranscodeParams()
     , oWidth(0)
     , oHeight(0)
     , fourcc(0)
+    , startupSize(0)
 {
     /*nothing to do*/
 }
