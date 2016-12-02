@@ -119,8 +119,8 @@ v4l2encode_LDFLAGS = $(V4L2_ENCODE_LDFLAGS)
 v4l2encode_SOURCES = v4l2encode.cpp encodeinput.h encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp $(DECODE_INPUT_SOURCES)
 
 yamivpp_LDADD    = $(YAMI_VPP_LIBS)
-yamivpp_LDFLAGS  = $(YAMI_VPP_LDFLAGS)
-yamivpp_SOURCES  = vppinputdecode.cpp vppinputoutput.cpp vppoutputencode.cpp  vpp.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp $(DECODE_INPUT_SOURCES) vppinputdecodecapi.cpp
+yamivpp_LDFLAGS  = -lpthread $(YAMI_VPP_LDFLAGS)
+yamivpp_SOURCES  = vppinputdecode.cpp vppinputoutput.cpp vppoutputencode.cpp  vpp.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp $(DECODE_INPUT_SOURCES) vppinputasync.cpp vppinputdecodecapi.cpp
 
 yamitranscode_LDADD    = $(YAMI_VPP_LIBS)
 yamitranscode_LDFLAGS  = -pthread $(YAMI_VPP_LDFLAGS)
