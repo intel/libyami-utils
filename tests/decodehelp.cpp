@@ -133,8 +133,11 @@ bool processCmdLine(int argc, char** argv, DecodeParameter* parameters)
     if (outputFile.empty())
         outputFile = "./";
     parameters->outputFile = outputFile;
-    if (!isSetFourcc)
+    if (!isSetFourcc) {
         parameters->renderFourcc = guessFourcc(parameters->outputFile.c_str());
+        if (!parameters->renderFourcc)
+            parameters->renderFourcc = YAMI_FOURCC_I420;
+    }
     int width, height;
     if (guessResolution(parameters->inputFile, width, height)) {
         parameters->width = width;
