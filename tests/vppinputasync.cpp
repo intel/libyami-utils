@@ -72,6 +72,9 @@ void VppInputAsync::loop()
 bool VppInputAsync::init(const SharedPtr<VppInput>& input, uint32_t queueSize)
 {
     m_input = input;
+    m_fourcc = input->getFourcc();
+    m_width = input->getWidth();
+    m_height = input->getHeight();
     m_queueSize = queueSize;
     if (pthread_create(&m_thread, NULL, start, this)) {
         ERROR("create thread failed");

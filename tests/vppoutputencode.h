@@ -53,6 +53,7 @@ public:
     EncodeParamsVP9 m_encParamsVP9;
     uint32_t layerBitRate[4]; // specify each scalable layer bitrate
     bool enableLowPower;
+    uint8_t bitDepth;
 };
 
 class TranscodeParams

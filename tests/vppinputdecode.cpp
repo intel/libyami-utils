@@ -75,6 +75,7 @@ bool VppInputDecode::read(SharedPtr<VideoFrame>& frame)
                 const VideoFormatInfo* info = m_decoder->getFormatInfo();
                 m_width = info->width;
                 m_height = info->height;
+                m_fourcc = info->fourcc;
 
                 //resend the buffer
                 status = m_decoder->decode(&inputBuffer);

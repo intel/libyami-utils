@@ -175,6 +175,7 @@ public:
     virtual bool read(SharedPtr<VideoFrame>& frame) = 0;
     int getWidth() { return m_width;}
     int getHeight() { return m_height;}
+    uint32_t getFourcc() { return m_fourcc; }
 
     virtual ~VppInput() {}
 protected:

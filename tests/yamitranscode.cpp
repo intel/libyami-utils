@@ -263,7 +263,7 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
 
 SharedPtr<VppInput> createInput(TranscodeParams& para, const SharedPtr<VADisplay>& display)
 {
-    SharedPtr<VppInput> input(VppInput::create(para.inputFileName.c_str(), 0, para.iWidth, para.iHeight));
+    SharedPtr<VppInput> input(VppInput::create(para.inputFileName.c_str(), para.fourcc, para.iWidth, para.iHeight));
     if (!input) {
         ERROR("creat input failed");
         return input;
@@ -292,10 +292,10 @@ SharedPtr<VppInput> createInput(TranscodeParams& para, const SharedPtr<VADisplay
     return input;
 }
 
-SharedPtr<VppOutput> createOutput(TranscodeParams& para, const SharedPtr<VADisplay>& display)
+SharedPtr<VppOutput> createOutput(TranscodeParams& para, const SharedPtr<VADisplay>& display, uint32_t fourcc)
 {
     SharedPtr<VppOutput> output = VppOutput::create(
-        para.outputFileName.c_str(), para.fourcc, para.oWidth, para.oHeight,
+        para.outputFileName.c_str(), fourcc, para.oWidth, para.oHeight,
         para.m_encParams.codec.c_str());
     SharedPtr<VppOutputFile> outputFile = DynamicPointerCast<VppOutputFile>(output);
     if (outputFile) {
@@ -351,7 +351,11 @@ public:
             return false;
         }
         m_input = createInput(m_cmdParam, m_display);
-        m_output =  createOutput(m_cmdParam, m_display);
+
+        if (m_input->getFourcc() == YAMI_FOURCC_P010)
+            m_cmdParam.m_encParams.bitDepth = 10;
+
+        m_output = createOutput(m_cmdParam, m_display, m_input->getFourcc());
         if (!m_input || !m_output) {
             ERROR("create input or output failed");
             return false;
