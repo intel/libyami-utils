@@ -28,8 +28,9 @@ public:
 
     bool read(SharedPtr<VideoFrame>& frame);
 
+    /*startupSize means how many buffers will preload to memory in startup, it will overide queueSize*/
     static SharedPtr<VppInput>
-    create(const SharedPtr<VppInput>& input, uint32_t queueSize);
+    create(const SharedPtr<VppInput>& input, uint32_t queueSize, uint32_t startupSize = 0);
 
     VppInputAsync();
     virtual ~VppInputAsync();
@@ -37,9 +38,10 @@ public:
     //do not use this
     bool init(const char* inputFileName, uint32_t fourcc, int width, int height);
 private:
-    bool init(const SharedPtr<VppInput>& input, uint32_t queueSize);
+    bool init(const SharedPtr<VppInput>& input, uint32_t queueSize, uint32_t startupSize);
     static void* start(void* async);
     void loop();
+    bool preloadFrames(uint32_t startupSize);
 
     Condition  m_cond;
     Lock       m_lock;
@@ -49,6 +51,7 @@ private:
     typedef std::deque<SharedPtr<VideoFrame> > FrameQueue;
     FrameQueue m_queue;
     uint32_t   m_queueSize;
+    uint32_t m_startupSize;
 
     pthread_t  m_thread;
     bool       m_quit;
