@@ -63,6 +63,7 @@ static void print_help(const char* app)
     printf("   --btl2 <svc-t layer 2 bitrate: kbps> optional\n");
     printf("   --btl3 <svc-t layer 3 bitrate: kbps> optional\n");
     printf("   --lowpower <Enable AVC low power mode (default 0, Disabled)> optional\n");
+    printf("   --startup-size <how many frames preload to memory> for performance mesurement only\n");
     printf("   VP9 encoder specific options:\n");
     printf("   --refmode <VP9 Reference frames mode (default 0 last(previous), "
            "gold/alt (previous key frame) | 1 last (previous) gold (one before "
@@ -88,30 +89,32 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
 {
     char opt;
     const struct option long_opts[] = {
-        {"help", no_argument, NULL, 'h' },
-        {"qp", required_argument, NULL, 0 },
-        {"rcmode", required_argument, NULL, 0 },
-        {"ipperiod", required_argument, NULL, 0 },
-        {"intraperiod", required_argument, NULL, 0 },
-        {"refnum", required_argument, NULL, 0 },
-        {"idrinterval", required_argument, NULL, 0 },
-        {"disable-cabac", no_argument, NULL, 0},
-        {"enable-dct8x8", no_argument, NULL, 0},
-        {"disable-deblock", no_argument, NULL, 0},
-        {"deblockalphadiv2", required_argument, NULL, 0},
-        {"deblockbetadiv2", required_argument, NULL, 0},
-        {"qpip", required_argument, NULL, 0 },
-        {"qpib", required_argument, NULL, 0 },
-        {"priorityid", required_argument, NULL, 0 },
-        {"refmode", required_argument, NULL, 0 },
-        {"ow", required_argument, NULL, 0 },
-        {"oh", required_argument, NULL, 0 },
-        {"btl0", required_argument, NULL, 0 },
-        {"btl1", required_argument, NULL, 0 },
-        {"btl2", required_argument, NULL, 0 },
-        {"btl3", required_argument, NULL, 0 },
-        {"lowpower", no_argument, NULL, 0 },
-        {NULL, no_argument, NULL, 0 }};
+        { "help", no_argument, NULL, 'h' },
+        { "qp", required_argument, NULL, 0 },
+        { "rcmode", required_argument, NULL, 0 },
+        { "ipperiod", required_argument, NULL, 0 },
+        { "intraperiod", required_argument, NULL, 0 },
+        { "refnum", required_argument, NULL, 0 },
+        { "idrinterval", required_argument, NULL, 0 },
+        { "disable-cabac", no_argument, NULL, 0 },
+        { "enable-dct8x8", no_argument, NULL, 0 },
+        { "disable-deblock", no_argument, NULL, 0 },
+        { "deblockalphadiv2", required_argument, NULL, 0 },
+        { "deblockbetadiv2", required_argument, NULL, 0 },
+        { "qpip", required_argument, NULL, 0 },
+        { "qpib", required_argument, NULL, 0 },
+        { "priorityid", required_argument, NULL, 0 },
+        { "refmode", required_argument, NULL, 0 },
+        { "ow", required_argument, NULL, 0 },
+        { "oh", required_argument, NULL, 0 },
+        { "btl0", required_argument, NULL, 0 },
+        { "btl1", required_argument, NULL, 0 },
+        { "btl2", required_argument, NULL, 0 },
+        { "btl3", required_argument, NULL, 0 },
+        { "lowpower", no_argument, NULL, 0 },
+        { "startup-size", required_argument, NULL, 0 },
+        { NULL, no_argument, NULL, 0 }
+    };
     int option_index;
 
     if (argc < 2) {
@@ -225,6 +228,9 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
                 case 22:
                     para.m_encParams.enableLowPower = true;
                     break;
+                case 23:
+                    para.startupSize = atoi(optarg);
+                    break;
             }
         }
     }
@@ -271,10 +277,16 @@ SharedPtr<VppInput> createInput(TranscodeParams& para, const SharedPtr<VADisplay
     SharedPtr<VppInputFile> inputFile = DynamicPointerCast<VppInputFile>(input);
     if (inputFile) {
         SharedPtr<FrameReader> reader(new VaapiFrameReader(display));
-        SharedPtr<FrameAllocator> alloctor(new PooledFrameAllocator(display, 5));
+        const static size_t allocatorExtra = 5;
+        SharedPtr<FrameAllocator> alloctor(new PooledFrameAllocator(display, para.startupSize + allocatorExtra));
         if(!inputFile->config(alloctor, reader)) {
             ERROR("config input failed");
             input.reset();
+        }
+    }
+    else {
+        if (para.startupSize) {
+            ERROR("curretly, startup size is only work for yuv input");
         }
     }
     SharedPtr<VppInputDecode> inputDecode = DynamicPointerCast<VppInputDecode>(input);
@@ -287,8 +299,9 @@ SharedPtr<VppInput> createInput(TranscodeParams& para, const SharedPtr<VADisplay
             input.reset();
         }
     }
-    if (input)
-        input = VppInputAsync::create(input, 3); //make input in other thread.
+    if (input) {
+        input = VppInputAsync::create(input, 3, para.startupSize); //make input in other thread.
+    }
     return input;
 }
 
