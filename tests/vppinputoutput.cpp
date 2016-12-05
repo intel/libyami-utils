@@ -107,8 +107,6 @@ static bool guessFormat(const char* filename, uint32_t& fourcc, int& width, int&
     if (!fourcc)
         fourcc = guessFourcc(filename);
 
-    if (!fourcc)
-        fourcc = VA_FOURCC('I', '4', '2', '0');
     return true;
 }
 

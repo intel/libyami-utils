@@ -55,19 +55,18 @@ TranscodeParams::TranscodeParams()
     , iHeight(0)
     , oWidth(0)
     , oHeight(0)
-    , fourcc(VA_FOURCC_NV12)
+    , fourcc(0)
 {
     /*nothing to do*/
 }
 
-bool VppOutputEncode::init(const char* outputFileName, uint32_t /*fourcc*/,
-                           int width, int height, const char* codecName)
+bool VppOutputEncode::init(const char* outputFileName, uint32_t fourcc,
+    int width, int height, const char* codecName)
 {
     if(!width || !height)
         if (!guessResolution(outputFileName, width, height))
             return false;
-
-    m_fourcc = VA_FOURCC('N', 'V', '1', '2');
+    m_fourcc = fourcc != YAMI_FOURCC_P010 ? YAMI_FOURCC_NV12 : YAMI_FOURCC_P010;
     m_width = width;
     m_height = height;
     m_output.reset(EncodeOutput::create(outputFileName, m_width, m_height, codecName));
@@ -86,8 +85,8 @@ void VppOutputEncode::initOuputBuffer()
 }
 
 static void setEncodeParam(const SharedPtr<IVideoEncoder>& encoder,
-                           int width, int height, const EncodeParams* encParam,
-                           const char * mimeType)
+    int width, int height, const EncodeParams* encParam,
+    const char* mimeType, uint32_t fourcc)
 {
     //configure encoding parameters
     VideoParamsCommon encVideoParams;
@@ -110,6 +109,11 @@ static void setEncodeParam(const SharedPtr<IVideoEncoder>& encoder,
     encVideoParams.rcMode = encParam->rcMode;
     encVideoParams.numRefFrames = encParam->numRefFrames;
     encVideoParams.enableLowPower = encParam->enableLowPower;
+    if (YAMI_FOURCC_P010 == fourcc)
+        encVideoParams.bitDepth = 10;
+    else
+        encVideoParams.bitDepth = 8;
+
     memcpy(encVideoParams.rcParams.layerBitRate, encParam->layerBitRate,
            sizeof(encParam->layerBitRate));
     encVideoParams.size = sizeof(VideoParamsCommon);
@@ -163,7 +167,7 @@ bool VppOutputEncode::config(NativeDisplay& nativeDisplay, const EncodeParams* e
         return false;
     m_encoder->setNativeDisplay(&nativeDisplay);
     m_mime = m_output->getMimeType();
-    setEncodeParam(m_encoder, m_width, m_height, encParam, m_mime);
+    setEncodeParam(m_encoder, m_width, m_height, encParam, m_mime, m_fourcc);
 
     Encode_Status status = m_encoder->start();
     assert(status == ENCODE_SUCCESS);
