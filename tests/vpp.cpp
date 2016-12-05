@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <string.h>
+#include <deque>
 
 using namespace YamiMediaCodec;
 
@@ -108,6 +109,7 @@ public:
 #endif
         , m_count(-1)
         , m_startupSize(0)
+        , m_skipDump(false)
     {
     }
     bool init(int argc, char** argv)
@@ -133,11 +135,26 @@ public:
         return bool(m_allocator);
     }
 
+    void flushGPU()
+    {
+        std::deque<SharedPtr<VideoFrame> > frames;
+        SharedPtr<VideoFrame> f;
+        do {
+            f = m_allocator->alloc();
+            if (!f)
+                break;
+            vaSyncSurface(*m_display, f->surface);
+            frames.push_back(f);
+        } while (true);
+    }
+
     bool run()
     {
 
         SharedPtr<VideoFrame> src, dest;
         YamiStatus  status;
+
+        FpsCalc fps;
         uint32_t count = 0;
         while (m_input->read(src)) {
             dest = m_allocator->alloc();
@@ -146,8 +163,12 @@ public:
                 ERROR("vpp process failed, status = %d", status);
                 return true;
             }
-            m_output->output(dest);
+
+            if (!m_skipDump)
+                m_output->output(dest);
             count++;
+            fps.addFrame();
+
             if (count >= m_count)
                 break;
         }
@@ -155,7 +176,12 @@ public:
         dest.reset();
         m_output->output(dest);
 
-        printf("%d frame processed\n", count);
+        //this will force all gpu operation finish. to get real performance
+        if (m_skipDump) {
+            flushGPU();
+        }
+        fps.log();
+
         return true;
     }
 private:
@@ -173,6 +199,7 @@ private:
             { "con", required_argument, NULL, 0 },
             { "startup-size", required_argument, NULL, 0 },
             { "count", required_argument, NULL, 'n' },
+            { "skip-dump", no_argument, NULL, 0 },
             { NULL, no_argument, NULL, 0 }
         };
         int option_index;
@@ -216,6 +243,9 @@ private:
                     break;
                 case 8:
                     m_startupSize = atoi(optarg);
+                    break;
+                case 10:
+                    m_skipDump = true;
                     break;
                 default:
                     usage();
@@ -333,6 +363,7 @@ private:
     int32_t m_contrast;
     uint32_t m_count;
     uint32_t m_startupSize;
+    bool m_skipDump;
 };
 
 void usage()
