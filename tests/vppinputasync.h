@@ -33,6 +33,9 @@ public:
 
     VppInputAsync();
     virtual ~VppInputAsync();
+    virtual int getWidth() { return m_input->getWidth(); }
+    virtual int getHeight() { return m_input->getHeight(); }
+    virtual uint32_t getFourcc() { return m_input->getFourcc(); }
 
     //do not use this
     bool init(const char* inputFileName, uint32_t fourcc, int width, int height);

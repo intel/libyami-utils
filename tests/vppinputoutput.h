@@ -173,8 +173,9 @@ public:
         create(const char* inputFileName, uint32_t fourcc = 0, int width = 0, int height = 0, bool useCAPI = false);
     virtual bool init(const char* inputFileName = 0, uint32_t fourcc = 0, int width = 0, int height = 0) = 0;
     virtual bool read(SharedPtr<VideoFrame>& frame) = 0;
-    int getWidth() { return m_width;}
-    int getHeight() { return m_height;}
+    virtual int getWidth() { return m_width; }
+    virtual int getHeight() { return m_height; }
+    virtual uint32_t getFourcc() { return m_fourcc; }
 
     virtual ~VppInput() {}
 protected:
