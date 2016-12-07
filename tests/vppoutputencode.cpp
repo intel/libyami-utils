@@ -191,6 +191,13 @@ bool VppOutputEncode::output(const SharedPtr<VideoFrame>& frame)
         if (status == ENCODE_SUCCESS
             && !m_output->write(m_outputBuffer.data, m_outputBuffer.dataSize))
              assert(0);
+
+        if (status == ENCODE_BUFFER_TOO_SMALL) {
+            m_outputBuffer.bufferSize = (m_outputBuffer.bufferSize * 3) / 2;
+            m_buffer.resize(m_outputBuffer.bufferSize);
+            m_outputBuffer.data = &m_buffer[0];
+        }
+
     } while (status != ENCODE_BUFFER_NO_MORE);
     return true;
 
