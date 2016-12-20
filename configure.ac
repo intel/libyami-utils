@@ -24,9 +24,9 @@ m4_define([libyamiutils_lt_version], [libyamiutils_lt_current.libyamiutils_lt_re
 
 # package version (lib name suffix), usually sync with git tag
 m4_define([libyamiutils_major_version], 1)
-m4_define([libyamiutils_minor_version], 0)
+m4_define([libyamiutils_minor_version], 1)
 # even number of micro_version means a release after full validation cycle
-m4_define([libyamiutils_micro_version], 1)
+m4_define([libyamiutils_micro_version], 0)
 m4_define([libyamiutils_version],
                     [libyamiutils_major_version.libyamiutils_minor_version.libyamiutils_micro_version])
 
