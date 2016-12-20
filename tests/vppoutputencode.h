@@ -53,6 +53,10 @@ public:
     EncodeParamsVP9 m_encParamsVP9;
     uint32_t layerBitRate[4]; // specify each scalable layer bitrate
     bool enableLowPower;
+    uint32_t targetPercentage;
+    uint32_t windowSize; // use for HRD CPB length in ms
+    unsigned int initBufferFullness; /* in bits */
+    unsigned int bufferSize; /* in bits */
 };
 
 class TranscodeParams

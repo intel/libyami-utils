@@ -43,7 +43,11 @@ static void print_help(const char* app)
     printf("   -N <number of frames to encode(camera default 50), useful for camera>\n");
     printf("   -t <AVC scalability temporal layer number  (default 1)> optional\n");
     printf("   --qp <initial qp> optional\n");
-    printf("   --rcmode <CBR|CQP> optional\n");
+    printf("   --rcmode <CBR|CQP|VBR> optional\n");
+    printf("   --target-percnetage <target percentage of bitrate in VBR mode, default 95, range in(50-100)> optional\n");
+    printf("   --hrd-window-size <windows size in milliseconds, default 1000> optional\n");
+    printf("   --vbv-buffer-fullness <vbv initial buffer fullness in bit> optional\n");
+    printf("   --vbv-buffer-size <vbv buffer size in bit> optional\n");
     printf("   --ipperiod <0 (I frame only) | 1 (I and P frames) | N (I,P and B frames, B frame number is N-1)> optional\n");
     printf("   --intraperiod <Intra frame period(default 30)> optional\n");
     printf("   --refnum <number of referece frames(default 1)> optional\n");
@@ -75,6 +79,9 @@ static VideoRateControl string_to_rc_mode(char *str)
 
     if (!strcasecmp (str, "CBR"))
         rcMode = RATE_CONTROL_CBR;
+    else if (!strcasecmp(str, "VBR")) {
+        rcMode = RATE_CONTROL_VBR;
+    }
     else if (!strcasecmp (str, "CQP"))
         rcMode = RATE_CONTROL_CQP;
     else {
@@ -111,6 +118,10 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
         { "btl2", required_argument, NULL, 0 },
         { "btl3", required_argument, NULL, 0 },
         { "lowpower", no_argument, NULL, 0 },
+        { "target-percnetage", required_argument, NULL, 0 },
+        { "hrd-window-size", required_argument, NULL, 0 },
+        { "vbv-buffer-fullness", required_argument, NULL, 0 },
+        { "vbv-buffer-size", required_argument, NULL, 0 },
         { NULL, no_argument, NULL, 0 }
     };
     int option_index;
@@ -226,6 +237,18 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
                 case 22:
                     para.m_encParams.enableLowPower = true;
                     break;
+                case 23:
+                    para.m_encParams.targetPercentage = atoi(optarg);
+                    break;
+                case 24:
+                    para.m_encParams.windowSize = atoi(optarg);
+                    break;
+                case 25:
+                    para.m_encParams.initBufferFullness = atoi(optarg);
+                    break;
+                case 26:
+                    para.m_encParams.bufferSize = atoi(optarg);
+                    break;
             }
         }
     }
@@ -248,6 +271,11 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
 
     if ((para.m_encParams.rcMode == RATE_CONTROL_CBR) && (para.m_encParams.bitRate <= 0)) {
         fprintf(stderr, "please make sure bitrate is positive when CBR mode\n");
+        return false;
+    }
+
+    if ((para.m_encParams.rcMode == RATE_CONTROL_VBR) && (para.m_encParams.bitRate <= 0)) {
+        fprintf(stderr, "please make sure bitrate is positive when VBR mode\n");
         return false;
     }
 
