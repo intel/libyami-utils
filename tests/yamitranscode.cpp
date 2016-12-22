@@ -67,6 +67,8 @@ static void print_help(const char* app)
     printf("   --btl2 <svc-t layer 2 bitrate: kbps> optional\n");
     printf("   --btl3 <svc-t layer 3 bitrate: kbps> optional\n");
     printf("   --lowpower <Enable AVC low power mode (default 0, Disabled)> optional\n");
+    printf("   --quality-level <encoded video qulity level(default 0), range[%d, %d]> optional\n",
+        VIDEO_PARAMS_QUALITYLEVEL_NONE, VIDEO_PARAMS_QUALITYLEVEL_MAX);
     printf("   VP9 encoder specific options:\n");
     printf("   --refmode <VP9 Reference frames mode (default 0 last(previous), "
            "gold/alt (previous key frame) | 1 last (previous) gold (one before "
@@ -122,6 +124,7 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
         { "hrd-window-size", required_argument, NULL, 0 },
         { "vbv-buffer-fullness", required_argument, NULL, 0 },
         { "vbv-buffer-size", required_argument, NULL, 0 },
+        { "quality-level", required_argument, NULL, 0 },
         { NULL, no_argument, NULL, 0 }
     };
     int option_index;
@@ -248,6 +251,9 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
                     break;
                 case 26:
                     para.m_encParams.bufferSize = atoi(optarg);
+                    break;
+                case 27:
+                    para.m_encParams.qualityLevel = atoi(optarg);
                     break;
             }
         }

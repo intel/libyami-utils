@@ -57,6 +57,7 @@ public:
     uint32_t windowSize; // use for HRD CPB length in ms
     unsigned int initBufferFullness; /* in bits */
     unsigned int bufferSize; /* in bits */
+    uint32_t qualityLevel;
 };
 
 class TranscodeParams
