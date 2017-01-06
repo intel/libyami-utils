@@ -60,7 +60,7 @@ int main(int argc, char** argv)
     if (YAMI_FOURCC_P010 == input->getFourcc())
         bitDepth = 10;
 
-    output = EncodeOutput::create(outputFileName, videoWidth, videoHeight, codec);
+    output = EncodeOutput::create(outputFileName, videoWidth, videoHeight, fps, codec);
     if (!output) {
         fprintf (stderr, "fail to init output stream\n");
         delete input;

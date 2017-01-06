@@ -171,7 +171,7 @@ EncodeOutput::~EncodeOutput()
 }
 
 EncodeOutput* EncodeOutput::create(const char* outputFileName, int width,
-                                   int height, const char* codecName)
+    int height, int fps, const char* codecName)
 {
     EncodeOutput* output = NULL;
     if (outputFileName == NULL)
@@ -212,14 +212,14 @@ EncodeOutput* EncodeOutput::create(const char* outputFileName, int width,
     else
         return NULL;
 
-    if (!output->init(outputFileName, width, height)) {
+    if (!output->init(outputFileName, width, height, fps)) {
         delete output;
         return NULL;
     }
     return output;
 }
 
-bool EncodeOutput::init(const char* outputFileName, int width , int height)
+bool EncodeOutput::init(const char* outputFileName, int width, int height, int fps)
 {
     m_fp = fopen(outputFileName, "w+");
     if (!m_fp) {
@@ -271,7 +271,7 @@ void setUint16(uint8_t* header, uint16_t value)
     *h = value;
 }
 
-void EncodeOutputVPX::getIVFFileHeader(uint8_t *header, int width, int height)
+void EncodeOutputVPX::getIVFFileHeader(uint8_t* header, int width, int height, int fps)
 {
     setUint32(header, YAMI_FOURCC('D','K','I','F'));
     setUint16(header+4, 0);                     // version
@@ -279,18 +279,18 @@ void EncodeOutputVPX::getIVFFileHeader(uint8_t *header, int width, int height)
     setUint32(header+8,  m_fourcc);             // fourcc
     setUint16(header+12, width);                // width
     setUint16(header+14, height);               // height
-    setUint32(header+16, 30);                   // rate
+    setUint32(header + 16, fps); // rate
     setUint32(header+20, 1);                    // scale
     setUint32(header+24, m_frameCount);         // framecount
     setUint32(header+28, 0);                    // unused
 }
 
-bool EncodeOutputVPX::init(const char* outputFileName, int width , int height)
+bool EncodeOutputVPX::init(const char* outputFileName, int width, int height, int fps)
 {
     if (!EncodeOutput::init(outputFileName, width, height))
         return false;
     uint8_t header[32];
-    getIVFFileHeader(header, width, height);
+    getIVFFileHeader(header, width, height, fps);
     return EncodeOutput::write(header, sizeof(header));
 }
 

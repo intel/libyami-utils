@@ -53,7 +53,7 @@ int main(int argc, char** argv)
     videoWidth = getInputWidth(input);
     videoHeight = getInputHeight(input);
 
-    output = createEncodeOutput(outputFileName, videoWidth, videoHeight);
+    output = createEncodeOutput(outputFileName, videoWidth, videoHeight, fps);
     if(!output) {
       fprintf(stderr, "fail to init ourput stream\n");
       return -1;

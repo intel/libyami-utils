@@ -29,9 +29,9 @@ EncodeInputHandler createEncodeInput(const char * inputFileName, uint32_t fourcc
     return EncodeInput::create(inputFileName, fourcc, width, height);
 }
 
-EncodeOutputHandler createEncodeOutput(const char * outputFileName, int width, int height)
+EncodeOutputHandler createEncodeOutput(const char* outputFileName, int width, int height, int fps)
 {
-    return EncodeOutput::create(outputFileName, width, height);
+    return EncodeOutput::create(outputFileName, width, height, fps);
 }
 
 bool encodeInputIsEOS(EncodeInputHandler input)
