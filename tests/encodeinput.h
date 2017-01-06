@@ -135,11 +135,11 @@ public:
     EncodeOutput();
     virtual ~EncodeOutput();
     static EncodeOutput* create(const char* outputFileName, int width,
-                                int height, const char* codecName = NULL);
+        int height, int fps = 30, const char* codecName = NULL);
     virtual bool write(void* data, int size);
     virtual const char* getMimeType() = 0;
 protected:
-    virtual bool init(const char* outputFileName, int width , int height);
+    virtual bool init(const char* outputFileName, int width, int height, int fps = 30);
     FILE *m_fp;
 };
 
@@ -155,11 +155,11 @@ public:
     virtual const char* getMimeType() = 0;
     virtual bool write(void* data, int size);
 protected:
-    virtual bool init(const char* outputFileName, int width , int height);
+    virtual bool init(const char* outputFileName, int width, int height, int fps = 30);
     uint32_t getFourcc() {return m_fourcc;};
     void setFourcc(uint32_t fourcc) {m_fourcc = fourcc;};
 private:
-    void getIVFFileHeader(uint8_t *header, int width, int height);
+    void getIVFFileHeader(uint8_t* header, int width, int height, int fps = 30);
     int m_frameCount;
     uint32_t m_fourcc;
 

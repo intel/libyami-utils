@@ -28,7 +28,7 @@ typedef void* EncodeOutputHandler;
 
 EncodeInputHandler createEncodeInput(const char * inputFileName, uint32_t fourcc, int width, int height);
 
-EncodeOutputHandler createEncodeOutput(const char * outputFileName, int width, int height);
+EncodeOutputHandler createEncodeOutput(const char* outputFileName, int width, int height, int fps = 30);
 
 bool encodeInputIsEOS(EncodeInputHandler input);
 

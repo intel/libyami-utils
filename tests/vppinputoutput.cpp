@@ -160,8 +160,8 @@ VppOutput::VppOutput()
 }
 
 SharedPtr<VppOutput> VppOutput::create(const char* outputFileName,
-                                       uint32_t fourcc, int width, int height,
-                                       const char* codecName)
+    uint32_t fourcc, int width, int height,
+    const char* codecName, int fps)
 {
     SharedPtr<VppOutput> output;
     if (!outputFileName) {
@@ -169,7 +169,7 @@ SharedPtr<VppOutput> VppOutput::create(const char* outputFileName,
         return output;
     }
     output.reset(new VppOutputEncode);
-    if (output->init(outputFileName, fourcc, width, height, codecName))
+    if (output->init(outputFileName, fourcc, width, height, codecName, fps))
         return output;
     output.reset(new VppOutputFile);
     if (output->init(outputFileName, fourcc, width, height, codecName))
@@ -189,7 +189,7 @@ bool VppOutput::getFormat(uint32_t& fourcc, int& width, int& height)
 }
 
 bool VppOutputFile::init(const char* outputFileName, uint32_t fourcc, int width,
-                         int height, const char* /*codecName*/)
+    int height, const char* /*codecName*/, int fps)
 {
     if (!outputFileName) {
         ERROR("output file name is null");

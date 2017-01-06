@@ -61,7 +61,7 @@ TranscodeParams::TranscodeParams()
 }
 
 bool VppOutputEncode::init(const char* outputFileName, uint32_t fourcc,
-    int width, int height, const char* codecName)
+    int width, int height, const char* codecName, int fps)
 {
     if(!width || !height)
         if (!guessResolution(outputFileName, width, height))
@@ -69,7 +69,7 @@ bool VppOutputEncode::init(const char* outputFileName, uint32_t fourcc,
     m_fourcc = fourcc != YAMI_FOURCC_P010 ? YAMI_FOURCC_NV12 : YAMI_FOURCC_P010;
     m_width = width;
     m_height = height;
-    m_output.reset(EncodeOutput::create(outputFileName, m_width, m_height, codecName));
+    m_output.reset(EncodeOutput::create(outputFileName, m_width, m_height, fps, codecName));
     return bool(m_output);
 }
 

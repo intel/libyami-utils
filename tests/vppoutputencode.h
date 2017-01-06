@@ -79,7 +79,7 @@ public:
     bool config(NativeDisplay& nativeDisplay, const EncodeParams* encParam = NULL);
 protected:
     virtual bool init(const char* outputFileName, uint32_t fourcc, int width,
-                      int height, const char* codecName);
+        int height, const char* codecName, int fps = 30);
 
 private:
     void initOuputBuffer();

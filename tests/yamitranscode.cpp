@@ -296,7 +296,7 @@ SharedPtr<VppOutput> createOutput(TranscodeParams& para, const SharedPtr<VADispl
 {
     SharedPtr<VppOutput> output = VppOutput::create(
         para.outputFileName.c_str(), fourcc, para.oWidth, para.oHeight,
-        para.m_encParams.codec.c_str());
+        para.m_encParams.codec.c_str(), para.m_encParams.fps);
     SharedPtr<VppOutputFile> outputFile = DynamicPointerCast<VppOutputFile>(output);
     if (outputFile) {
         SharedPtr<FrameWriter> writer(new VaapiFrameWriter(display));
