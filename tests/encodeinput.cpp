@@ -331,11 +331,15 @@ EncodeOutputVP9::EncodeOutputVP9()
 
 bool createOutputBuffer(VideoEncOutputBuffer* outputBuffer, int maxOutSize)
 {
-    outputBuffer->data = static_cast<uint8_t*>(malloc(maxOutSize));
-    if (!outputBuffer->data)
+    uint8_t* tmp;
+    tmp = static_cast<uint8_t*>(malloc(maxOutSize));
+    if (!tmp)
         return false;
     outputBuffer->bufferSize = maxOutSize;
     outputBuffer->format = OUTPUT_EVERYTHING;
+    if (outputBuffer->data)
+        free(outputBuffer->data);
+    outputBuffer->data = tmp;
     return true;
 }
 

@@ -45,6 +45,7 @@ int main(int argc, char** argv)
     VideoEncOutputBuffer outputBuffer;
     int encodeFrameCount = 0;
 
+    memset(&outputBuffer, 0, sizeof(VideoEncOutputBuffer));
     if (!process_cmdline(argc, argv))
         return -1;
 
@@ -159,6 +160,13 @@ int main(int argc, char** argv)
                 fwrite(MVBuffer.data, MVBuffer.bufferSize, 1, MVFp);
             }
 #endif
+            if (status == ENCODE_BUFFER_TOO_SMALL) {
+                maxOutSize = (maxOutSize * 3) / 2;
+                if (!createOutputBuffer(&outputBuffer, maxOutSize)) {
+                    fprintf(stderr, "fail to create output\n");
+                    goto error1;
+                }
+            }
         } while (status != ENCODE_BUFFER_NO_MORE);
 
         encodeFrameCount++;
@@ -184,8 +192,16 @@ int main(int argc, char** argv)
             fwrite(MVBuffer.data, MVBuffer.bufferSize, 1, MVFp);
         }
 #endif
+        if (status == ENCODE_BUFFER_TOO_SMALL) {
+            maxOutSize = (maxOutSize * 3) / 2;
+            if (!createOutputBuffer(&outputBuffer, maxOutSize)) {
+                fprintf(stderr, "fail to create output\n");
+                goto error1;
+            }
+        }
     } while (status != ENCODE_BUFFER_NO_MORE);
 
+error1:
     encoder->stop();
     releaseVideoEncoder(encoder);
     free(outputBuffer.data);
