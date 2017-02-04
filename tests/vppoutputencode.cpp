@@ -44,6 +44,11 @@ EncodeParams::EncodeParams()
     , temporalLayerNum(1)
     , priorityId(0)
     , enableLowPower(false)
+    , targetPercentage(95)
+    , windowSize(1000)
+    , initBufferFullness(0)
+    , bufferSize(0)
+    , qualityLevel(VIDEO_PARAMS_QUALITYLEVEL_NONE)
 {
     memset(layerBitRate, 0, sizeof(layerBitRate));
 }
@@ -107,6 +112,7 @@ static void setEncodeParam(const SharedPtr<IVideoEncoder>& encoder,
     encVideoParams.rcParams.diffQPIP = encParam->diffQPIP;
     encVideoParams.rcParams.diffQPIB = encParam->diffQPIB;
     encVideoParams.rcMode = encParam->rcMode;
+
     encVideoParams.numRefFrames = encParam->numRefFrames;
     encVideoParams.enableLowPower = encParam->enableLowPower;
     if (YAMI_FOURCC_P010 == fourcc)
@@ -118,6 +124,25 @@ static void setEncodeParam(const SharedPtr<IVideoEncoder>& encoder,
            sizeof(encParam->layerBitRate));
     encVideoParams.size = sizeof(VideoParamsCommon);
     encoder->setParameters(VideoParamsTypeCommon, &encVideoParams);
+
+    VideoParamsHRD encVideoParamsHRD;
+    encVideoParamsHRD.size = sizeof(VideoParamsHRD);
+    encoder->getParameters(VideoParamsTypeHRD, &encVideoParams);
+    encVideoParamsHRD.targetPercentage = encParam->targetPercentage;
+    encVideoParamsHRD.windowSize = encParam->windowSize;
+    encVideoParamsHRD.initBufferFullness = encParam->initBufferFullness;
+    encVideoParamsHRD.bufferSize = encParam->bufferSize;
+    encVideoParamsHRD.size = sizeof(VideoParamsHRD);
+    encoder->setParameters(VideoParamsTypeHRD, &encVideoParamsHRD);
+
+    if (encParam->qualityLevel != VIDEO_PARAMS_QUALITYLEVEL_NONE) {
+        VideoParamsQualityLevel encVideoParamsQualityLevel;
+        encVideoParamsQualityLevel.size = sizeof(VideoParamsQualityLevel);
+        encoder->getParameters(VideoParamsTypeQualityLevel, &encVideoParamsQualityLevel);
+        encVideoParamsQualityLevel.level = encParam->qualityLevel;
+        encVideoParamsQualityLevel.size = sizeof(VideoParamsQualityLevel);
+        encoder->setParameters(VideoParamsTypeQualityLevel, &encVideoParamsQualityLevel);
+    }
 
     // configure AVC encoding parameters
     VideoParamsAVC encVideoParamsAVC;
