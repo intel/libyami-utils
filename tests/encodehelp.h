@@ -63,7 +63,7 @@ static void print_help(const char* app)
     printf("   -b <bitrate: kbps> optional\n");
     printf("   -f <frame rate> optional\n");
     printf("   -c <codec: HEVC|AVC|VP8|VP9|JPEG>\n");
-    printf("   -s <fourcc: NV12|IYUV|YV12|P010>\n");
+    printf("   -s <fourcc: NV12|I420|IYUV|YV12|P010>\n");
     printf("   -N <number of frames to encode(camera default 50), useful for camera>\n");
     printf("   --qp <initial qp> optional\n");
     printf("   --rcmode <CBR|CQP> optional\n");
