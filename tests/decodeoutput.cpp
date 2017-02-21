@@ -160,12 +160,17 @@ public:
         }
 
         uint32_t planes, width[3], height[3];
+        uint32_t xByte[3], yByte[3];
         if (!getPlaneResolution(src->fourcc, src->crop.width, src->crop.height, width, height, planes)) {
             ERROR("get plane reoslution failed");
             return false;
         }
+        if (!getPlaneResolution(src->fourcc, src->crop.x, src->crop.y, xByte, yByte, planes)) {
+            ERROR("get left-top coordinate failed");
+            return false;
+        }
         for (uint32_t i = 0; i < planes; i++) {
-            copyPlane(dest, p, image.offsets[i], width[i], height[i], image.pitches[i]);
+            copyPlane(dest, p, image.offsets[i] + yByte[i] * image.pitches[i], width[i], height[i], image.pitches[i], xByte[i]);
         }
         unmapImage(*m_display, image);
         return true;
@@ -173,14 +178,13 @@ public:
 
 private:
     static void copyPlane(std::vector<uint8_t>& v, uint8_t* data, uint32_t offset, uint32_t width,
-        uint32_t height, uint32_t pitch)
+        uint32_t height, uint32_t pitch, uint32_t widthOffset)
     {
         data += offset;
         for (uint32_t h = 0; h < height; h++) {
-            v.insert(v.end(), data, data + width);
+            v.insert(v.end(), data + widthOffset, data + width + widthOffset);
             data += pitch;
         }
-
     }
 
     bool init(uint32_t width, uint32_t height)
@@ -521,8 +525,8 @@ bool DecodeOutputXWindow::output(const SharedPtr<VideoFrame>& frame)
         return false;
 
     VAStatus status = vaPutSurface(*m_vaDisplay, (VASurfaceID)frame->surface,
-        m_window, 0, 0, frame->crop.width, frame->crop.height,
-        frame->crop.x, frame->crop.y, frame->crop.width, frame->crop.height,
+        m_window, frame->crop.x, frame->crop.y, frame->crop.width, frame->crop.height,
+        0, 0, frame->crop.width, frame->crop.height,
         NULL, 0, 0);
     return checkVaapiStatus(status, "vaPutSurface");
 }

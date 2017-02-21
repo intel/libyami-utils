@@ -89,10 +89,15 @@ public:
             return false;
         }
         uint32_t byteWidth[3], byteHeight[3], planes;
+        uint32_t byteX[3], byteY[3];
         //image.width is not equal to frame->crop.width.
         //for supporting VPG Driver, use YV12 to replace I420
         if (!getPlaneResolution(frame->fourcc, frame->crop.width, frame->crop.height, byteWidth, byteHeight, planes)) {
             ERROR("get plane reoslution failed for %x, %dx%d", frame->fourcc, frame->crop.width, frame->crop.height);
+            return false;
+        }
+        if (!getPlaneResolution(frame->fourcc, frame->crop.x, frame->crop.y, byteX, byteY, planes)) {
+            ERROR("get left-top coordinate(%d,%d) failed", frame->crop.x, frame->crop.y);
             return false;
         }
         char* buf;
@@ -105,9 +110,10 @@ public:
         bool ret = true;
         for (uint32_t i = 0; i < planes; i++) {
             char* ptr = buf + image.offsets[i];
+            ptr += image.pitches[i] * byteY[i];
             int w = byteWidth[i];
             for (uint32_t j = 0; j < byteHeight[i]; j++) {
-                ret = m_io(ptr, w, fp);
+                ret = m_io(ptr + byteX[i], w, fp);
                 if (!ret)
                     goto out;
                 ptr += image.pitches[i];
