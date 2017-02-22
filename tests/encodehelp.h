@@ -35,6 +35,10 @@ static VideoRateControl rcMode = RATE_CONTROL_CQP;
 static int frameCount = 0;
 static int numRefFrames = 1;
 static bool enableLowPower = false;
+static uint32_t bufferSize = 0;
+static uint32_t initBufferFullness = 0;
+static uint32_t windowSize = 1000;
+static uint32_t targetPercentage = 95;
 
 #ifdef __BUILD_GET_MV__
 static FILE *MVFp;
@@ -66,7 +70,7 @@ static void print_help(const char* app)
     printf("   -s <fourcc: NV12|I420|IYUV|YV12|P010>\n");
     printf("   -N <number of frames to encode(camera default 50), useful for camera>\n");
     printf("   --qp <initial qp> optional\n");
-    printf("   --rcmode <CBR|CQP> optional\n");
+    printf("   --rcmode <CBR|VBR|CQP> optional\n");
     printf("   --ipperiod <0 (I frame only) | 1 (I and P frames) | N (I,P and B frames, B frame number is N-1)> optional\n");
     printf("   --intraperiod <Intra frame period (default 30)> optional\n");
     printf("   --refnum <number of referece frames(default 1)> optional\n");
@@ -75,6 +79,10 @@ static void print_help(const char* app)
            "gold/alt (previous key frame) | 1 last (previous) gold (one before "
            "last) alt (one before gold)> optional\n");
     printf("   --lowpower <Enable AVC low power mode (default 0, Disabled)> optional\n");
+    printf("   --target-percnetage <target percentage of bitrate in VBR mode, default 95, range in(50-100)> optional\n");
+    printf("   --hrd-window-size <windows size in milliseconds, default 1000> optional\n");
+    printf("   --vbv-buffer-fullness <vbv initial buffer fullness in bit> optional\n");
+    printf("   --vbv-buffer-size <vbv buffer size in bit> optional\n");
 }
 
 static VideoRateControl string_to_rc_mode(char *str)
@@ -83,6 +91,8 @@ static VideoRateControl string_to_rc_mode(char *str)
 
     if (!strcasecmp (str, "CBR"))
         rcMode = RATE_CONTROL_CBR;
+    else if (!strcasecmp(str, "VBR"))
+        rcMode = RATE_CONTROL_VBR;
     else if (!strcasecmp (str, "CQP"))
         rcMode = RATE_CONTROL_CQP;
     else {
@@ -105,6 +115,10 @@ static bool process_cmdline(int argc, char *argv[])
         { "idrinterval", required_argument, NULL, 0 },
         { "refmode", required_argument, NULL, 0 },
         { "lowpower", no_argument, 0, 0 },
+        { "target-percnetage", required_argument, NULL, 0 },
+        { "hrd-window-size", required_argument, NULL, 0 },
+        { "vbv-buffer-fullness", required_argument, NULL, 0 },
+        { "vbv-buffer-size", required_argument, NULL, 0 },
         { NULL, no_argument, NULL, 0 }
     };
     int option_index;
@@ -175,6 +189,18 @@ static bool process_cmdline(int argc, char *argv[])
                 case 8:
                     enableLowPower = true;
                     break;
+                case 9:
+                    targetPercentage = atoi(optarg);
+                    break;
+                case 10:
+                    windowSize = atoi(optarg);
+                    break;
+                case 11:
+                    initBufferFullness = atoi(optarg);
+                    break;
+                case 12:
+                    bufferSize = atoi(optarg);
+                    break;
             }
         }
     }
@@ -186,8 +212,8 @@ static bool process_cmdline(int argc, char *argv[])
     }
 #endif
 
-    if ((rcMode == RATE_CONTROL_CBR) && (bitRate <= 0)) {
-        fprintf(stderr, "please make sure bitrate is positive when CBR mode\n");
+    if ((rcMode == RATE_CONTROL_CBR || rcMode == RATE_CONTROL_VBR) && (bitRate <= 0)) {
+        fprintf(stderr, "please make sure bitrate is positive when CBR/VBR mode\n");
         return false;
     }
 
@@ -235,4 +261,13 @@ void setEncoderParameters(VideoParamsCommon* encVideoParams)
     //encVideoParams->profile = VAProfileH264Main;
     //encVideoParams->profile = VAProfileVP8Version0_3;
 }
+
+void setEncoderParameterHRD(VideoParamsHRD* encVideoParamHRD)
+{
+    encVideoParamHRD->targetPercentage = targetPercentage;
+    encVideoParamHRD->windowSize = windowSize;
+    encVideoParamHRD->initBufferFullness = initBufferFullness;
+    encVideoParamHRD->bufferSize = bufferSize;
+}
+
 #endif
