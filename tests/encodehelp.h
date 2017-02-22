@@ -96,16 +96,17 @@ static bool process_cmdline(int argc, char *argv[])
 {
     char opt;
     const struct option long_opts[] = {
-        {"help", no_argument, NULL, 'h' },
-        {"qp", required_argument, NULL, 0 },
-        {"rcmode", required_argument, NULL, 0 },
-        {"ipperiod", required_argument, NULL, 0 },
-        {"intraperiod", required_argument, NULL, 0 },
-        {"refnum", required_argument, NULL, 0 },
-        {"idrinterval", required_argument, NULL, 0 },
-        {"refmode", required_argument, NULL, 0 },
-        {"lowpower", no_argument, 0, 0},
-        {NULL, no_argument, NULL, 0 }};
+        { "help", no_argument, NULL, 'h' },
+        { "qp", required_argument, NULL, 0 },
+        { "rcmode", required_argument, NULL, 0 },
+        { "ipperiod", required_argument, NULL, 0 },
+        { "intraperiod", required_argument, NULL, 0 },
+        { "refnum", required_argument, NULL, 0 },
+        { "idrinterval", required_argument, NULL, 0 },
+        { "refmode", required_argument, NULL, 0 },
+        { "lowpower", no_argument, 0, 0 },
+        { NULL, no_argument, NULL, 0 }
+    };
     int option_index;
 
     if (argc < 2) {
