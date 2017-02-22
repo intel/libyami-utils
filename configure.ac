@@ -71,10 +71,6 @@ if test "$enable_debug" = "yes"; then
         [Defined to 1 if --enable-debug="yes"])
 fi
 
-GTEST_LIB_CHECK([1.7.0], [:], [:])
-AM_CONDITIONAL([ENABLE_UNITTESTS],
-[test "x$HAVE_GTEST" = "xyes"])
-
 AC_ARG_ENABLE(dmabuf,
     [AC_HELP_STRING([--enable-dmabuf],
         [support dma_buf buffer sharing @<:@default=no@:>@])],
@@ -287,7 +283,6 @@ AC_MSG_RESULT([
     libyami - libyamiutils_version
 
     Build utils ...................... : $APPS
-    Build gtest unit tests ........... : $HAVE_GTEST
     Enable debug ..................... : $enable_debug
     Installation prefix .............. : $prefix
 ])
