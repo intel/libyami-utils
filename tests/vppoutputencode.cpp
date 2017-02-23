@@ -127,7 +127,7 @@ static void setEncodeParam(const SharedPtr<IVideoEncoder>& encoder,
 
     VideoParamsHRD encVideoParamsHRD;
     encVideoParamsHRD.size = sizeof(VideoParamsHRD);
-    encoder->getParameters(VideoParamsTypeHRD, &encVideoParams);
+    encoder->getParameters(VideoParamsTypeHRD, &encVideoParamsHRD);
     encVideoParamsHRD.targetPercentage = encParam->targetPercentage;
     encVideoParamsHRD.windowSize = encParam->windowSize;
     encVideoParamsHRD.initBufferFullness = encParam->initBufferFullness;
