@@ -91,6 +91,15 @@ int main(int argc, char** argv)
     encVideoParamsHRD.size = sizeof(VideoParamsHRD);
     encoder->setParameters(VideoParamsTypeHRD, &encVideoParamsHRD);
 
+    if (qualityLevel != VIDEO_PARAMS_QUALITYLEVEL_NONE) {
+        VideoParamsQualityLevel encVideoParamsQualityLevel;
+        encVideoParamsQualityLevel.size = sizeof(VideoParamsQualityLevel);
+        encoder->getParameters(VideoParamsTypeQualityLevel, &encVideoParamsQualityLevel);
+        encVideoParamsQualityLevel.level = qualityLevel;
+        encVideoParamsQualityLevel.size = sizeof(VideoParamsQualityLevel);
+        encoder->setParameters(VideoParamsTypeQualityLevel, &encVideoParamsQualityLevel);
+    }
+
     // configure AVC encoding parameters
     VideoParamsAVC encVideoParamsAVC;
     if (!strcmp(output->getMimeType(), YAMI_MIME_H264)) {

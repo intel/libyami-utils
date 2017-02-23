@@ -39,6 +39,7 @@ static uint32_t bufferSize = 0;
 static uint32_t initBufferFullness = 0;
 static uint32_t windowSize = 1000;
 static uint32_t targetPercentage = 95;
+static uint32_t qualityLevel = VIDEO_PARAMS_QUALITYLEVEL_NONE;
 
 #ifdef __BUILD_GET_MV__
 static FILE *MVFp;
@@ -83,6 +84,8 @@ static void print_help(const char* app)
     printf("   --hrd-window-size <windows size in milliseconds, default 1000> optional\n");
     printf("   --vbv-buffer-fullness <vbv initial buffer fullness in bit> optional\n");
     printf("   --vbv-buffer-size <vbv buffer size in bit> optional\n");
+    printf("   --quality-level <encoded video qulity level(default 0), range[%d, %d]> optional\n",
+        VIDEO_PARAMS_QUALITYLEVEL_NONE, VIDEO_PARAMS_QUALITYLEVEL_MAX);
 }
 
 static VideoRateControl string_to_rc_mode(char *str)
@@ -119,6 +122,7 @@ static bool process_cmdline(int argc, char *argv[])
         { "hrd-window-size", required_argument, NULL, 0 },
         { "vbv-buffer-fullness", required_argument, NULL, 0 },
         { "vbv-buffer-size", required_argument, NULL, 0 },
+        { "quality-level", required_argument, NULL, 0 },
         { NULL, no_argument, NULL, 0 }
     };
     int option_index;
@@ -200,6 +204,9 @@ static bool process_cmdline(int argc, char *argv[])
                     break;
                 case 12:
                     bufferSize = atoi(optarg);
+                    break;
+                case 13:
+                    qualityLevel = atoi(optarg);
                     break;
             }
         }
