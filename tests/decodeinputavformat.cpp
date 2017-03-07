@@ -22,6 +22,10 @@
 #include "common/log.h"
 #include <Yami.h>
 
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(55, 39, 100)
+#define av_packet_unref av_free_packet
+#endif
+
 DecodeInputAvFormat::DecodeInputAvFormat()
 :m_format(NULL),m_videoId(-1), m_codecId(AV_CODEC_ID_NONE), m_isEos(true)
 {
@@ -103,7 +107,9 @@ static const MimeEntry MimeEntrys[] = {
 #endif
 
     AV_CODEC_ID_H264, YAMI_MIME_H264,
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(55, 39, 100)
     AV_CODEC_ID_H265, YAMI_MIME_H265,
+#endif
     AV_CODEC_ID_WMV3, YAMI_MIME_VC1,
     AV_CODEC_ID_VC1, YAMI_MIME_VC1
 };
