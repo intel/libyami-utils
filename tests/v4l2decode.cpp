@@ -33,10 +33,10 @@
 #include "common/utils.h"
 #include "decodeinput.h"
 #include "decodehelp.h"
-#if ANDROID
+#ifdef ANDROID
 #include <gui/SurfaceComposerClient.h>
 #include <va/va_android.h>
-#elif __ENABLE_WAYLAND__
+#elif defined(__ENABLE_WAYLAND__)
 #include <wayland-client.h>
 #else
 #include "./egl/gles2_help.h"
@@ -47,7 +47,7 @@
     #define V4L2_EVENT_RESOLUTION_CHANGE 5
 #endif
 
-#if __ENABLE_V4L2_OPS__
+#if defined(__ENABLE_V4L2_OPS__)
 #include "v4l2codec_device_ops.h"
 #include <dlfcn.h>
 #include <fcntl.h>
@@ -66,7 +66,7 @@ static const char* typeStrRawData = "raw-data";
 #define IS_ANDROID_BUFFER_HANDLE()   (!strcmp(memoryTypeStr, typeStrAndroidBufferHandle))
 
 static enum v4l2_memory inputMemoryType = V4L2_MEMORY_MMAP;
-#if ANDROID
+#ifdef ANDROID
 static const char* typeStrAndroidBufferHandle = "android-buffer-handle";
 static VideoDataMemoryType memoryType = VIDEO_DATA_MEMORY_TYPE_ANDROID_BUFFER_HANDLE;
 static enum v4l2_memory outputMemoryType = (enum v4l2_memory) V4L2_MEMORY_ANDROID_BUFFER_HANDLE;
@@ -130,7 +130,7 @@ bool createNativeWindow(__u32 pixelformat)
 }
 #endif
 
-#if __ENABLE_V4L2_OPS__
+#ifdef __ENABLE_V4L2_OPS__
 static struct V4l2CodecOps s_v4l2CodecOps;
 static int32_t s_v4l2Fd = 0;
 
@@ -203,11 +203,11 @@ static std::vector<struct RawFrameData> rawOutputFrames;
 
 static FILE* outfp = NULL;
 
-#if __ENABLE_X11__
+#ifdef __ENABLE_X11__
 static Display * x11Display = NULL;
 static Window x11Window = 0;
 #endif
-#if __ENABLE_TESTS_GLES__
+#ifdef __ENABLE_TESTS_GLES__
 static EGLContextType *eglContext = NULL;
 static std::vector<EGLImageKHR> eglImages;
 static std::vector<GLuint> textureIds;
@@ -332,7 +332,7 @@ static bool displayOneVideoFrameAndroid(int32_t fd, int32_t index)
     return true;
 }
 
-#elif __ENABLE_WAYLAND__
+#elif defined(__ENABLE_WAYLAND__)
 struct display {
     SharedPtr<wl_display>        display;
     SharedPtr<wl_compositor>     compositor;
@@ -518,7 +518,7 @@ bool takeOneOutputFrame(int fd, int index = -1/* if index is not -1, simple enqu
         renderFrameCount++;
 #ifdef ANDROID
         ret = displayOneVideoFrameAndroid(fd, buf.index);
-#elif __ENABLE_WAYLAND__
+#elif defined(__ENABLE_WAYLAND__)
         ret = displayOneVideoFrameWayland(fd, &buf);
 #else
 #ifdef __ENABLE_TESTS_GLES__
@@ -590,7 +590,7 @@ int main(int argc, char** argv)
     XInitThreads();
 #endif
 
-#if __ENABLE_V4L2_OPS__
+#if defined(__ENABLE_V4L2_OPS__)
     // FIXME, use libv4l2codec_hw.so instead
     if (!loadV4l2CodecDevice("libyami_v4l2.so")) {
         ERROR("fail to init v4l2codec device with __ENABLE_V4L2_OPS__\n");
@@ -630,9 +630,9 @@ int main(int argc, char** argv)
     // open device
     fd = SIMULATE_V4L2_OP(Open)("decoder", 0);
     ASSERT(fd!=-1);
-#if __ENABLE_WAYLAND__
+#if defined(__ENABLE_WAYLAND__)
     createWaylandDisplay();
-#if __ENABLE_V4L2_OPS__
+#if defined(__ENABLE_V4L2_OPS__)
     char displayStr[32];
     sprintf(displayStr, "%" PRIu64 "", (uint64_t)(waylandDisplay.display.get()));
     ioctlRet = SIMULATE_V4L2_OP(SetParameter)(fd, "wayland-display", displayStr);
@@ -644,7 +644,7 @@ int main(int argc, char** argv)
     x11Display = XOpenDisplay(NULL);
     ASSERT(x11Display);
     DEBUG("x11display: %p", x11Display);
-    #if __ENABLE_V4L2_OPS__
+    #if defined(__ENABLE_V4L2_OPS__)
     char displayStr[32];
     sprintf(displayStr, "%" PRIu64 "", (uint64_t)x11Display);
     ioctlRet = SIMULATE_V4L2_OP(SetParameter)(fd, "x11-display", displayStr);
@@ -653,7 +653,7 @@ int main(int argc, char** argv)
     #endif
 #endif
     // set output frame memory type
-#if __ENABLE_V4L2_OPS__
+#if defined(__ENABLE_V4L2_OPS__)
     SIMULATE_V4L2_OP(SetParameter)(fd, "frame-memory-type", memoryTypeStr);
 #else
     SIMULATE_V4L2_OP(FrameMemoryType)(fd, memoryType);
@@ -751,16 +751,18 @@ int main(int argc, char** argv)
     // query video resolution
     memset(&format, 0, sizeof(format));
     format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+    // decoding runs in another thread, wait until video info is got before continue
     while (1) {
-        if (SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_G_FMT, &format) != 0) {
-            if (errno != EINVAL) {
-                // EINVAL means we haven't seen sufficient stream to decode the format.
-                INFO("ioctl() failed: VIDIOC_G_FMT, haven't get video resolution during start yet, waiting");
-            }
-        } else {
+        ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_G_FMT, &format) ;
+        if (ioctlRet == 0)
             break;
+        
+        if (ioctlRet == EAGAIN) {
+            INFO("ioctl() failed: VIDIOC_G_FMT, haven't get video resolution during start yet, waiting");
+        } else {
+            WARNING("ioctl fail to get VIDIOC_G_FMT");
         }
-        usleep(50);
+        usleep(5000);
     }
     outputPlaneCount = format.fmt.pix_mp.num_planes;
     ASSERT(outputPlaneCount == 2);
@@ -852,7 +854,7 @@ int main(int argc, char** argv)
             }
         }
     }
-#if __ENABLE_TESTS_GLES__
+#ifdef __ENABLE_TESTS_GLES__
     if (IS_DMA_BUF() || IS_DRM_NAME()) {
         // setup all textures and eglImages
         eglImages.resize(outputQueueCapacity);
@@ -879,7 +881,7 @@ int main(int argc, char** argv)
     }
 #endif
 #endif
-#if __ENABLE_WAYLAND__
+#if defined(__ENABLE_WAYLAND__)
     struct v4l2_buffer buffer;
     //queue buffs
     for (uint32_t i = 0; i < outputQueueCapacity; i++) {
@@ -997,7 +999,7 @@ int main(int argc, char** argv)
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
     ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_STREAMOFF, &type);
     ASSERT(ioctlRet != -1);
-#if __ENABLE_TESTS_GLES__
+#ifdef __ENABLE_TESTS_GLES__
     if(textureIds.size())
         glDeleteTextures(textureIds.size(), &textureIds[0]);
     ASSERT(glGetError() == GL_NO_ERROR);
