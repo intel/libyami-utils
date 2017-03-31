@@ -73,7 +73,7 @@ static uint32_t renderFrameCount = 0;
 
 static DecodeParameter params;
 
-bool feedOneInputFrame(DecodeInput* input, const SharedPtr<V4L2Device>& device, int index = -1 /* if index is not -1, simple enque it*/)
+bool feedOneInputFrame(const SharedPtr<DecodeInput>& input, const SharedPtr<V4L2Device>& device, int index = -1 /* if index is not -1, simple enque it*/)
 {
 
     VideoDecodeBuffer inputBuffer;
@@ -157,7 +157,7 @@ extern uint32_t v4l2PixelFormatFromMime(const char* mime);
 
 int main(int argc, char** argv)
 {
-    DecodeInput *input;
+    SharedPtr<DecodeInput> input;
     uint32_t i = 0;
     int32_t ioctlRet = -1;
     YamiMediaCodec::CalcFps calcFps;
@@ -182,9 +182,8 @@ int main(int argc, char** argv)
         ASSERT(0 && "unsupported render mode, -m [0,3,4, 6] are supported");
     break;
     }
-
-    input = DecodeInput::create(params.inputFile);
-    if (input==NULL) {
+    input.reset(DecodeInput::create(params.inputFile));
+    if (!input) {
         ERROR("fail to init input stream\n");
         return -1;
     }
@@ -354,9 +353,8 @@ int main(int argc, char** argv)
 #ifdef SEEK_POS
         frames++;
         if (frames == SEEK_POS) {
-            delete input;
-            input = DecodeInput::create(params.inputFile);
-            if (input == NULL) {
+            input.reset(DecodeInput::create(params.inputFile));
+            if (!input) {
                 ERROR("fail to init input stream\n");
                 return -1;
             }
@@ -424,9 +422,6 @@ int main(int argc, char** argv)
     // close device
     ioctlRet = device->close();
     ASSERT(ioctlRet != -1);
-
-    if(input)
-        delete input;
 
     fprintf(stdout, "decode done\n");
     return 0;
