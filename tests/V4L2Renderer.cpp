@@ -245,7 +245,7 @@ public:
         }
         return true;
     }
-    ~ExternalDmaBufRenderer()
+    virtual ~ExternalDmaBufRenderer()
     {
         if (m_surfaces.size()) {
             vaDestroySurfaces(m_display->getID(), &m_surfaces[0], m_surfaces.size());
@@ -387,7 +387,7 @@ public:
 
         return ret == 0;
     }
-    ~EglRenderer()
+    virtual ~EglRenderer()
     {
         if (m_textureIds.size())
             glDeleteTextures(m_textureIds.size(), &m_textureIds[0]);
@@ -419,9 +419,11 @@ private:
         m_textureIds.resize(count);
         // setup all textures and eglImages
 
-        if (!m_eglContext)
+        if (!m_eglContext) {
             m_eglContext = eglInit(m_x11Display, m_x11Window, 0 /*VA_FOURCC_RGBA*/, isDmaBuf());
-
+            if (!m_eglContext)
+                return false;
+        }
         m_eglImages.resize(count);
         glGenTextures(count, &m_textureIds[0]);
         for (uint32_t i = 0; i < count; i++) {

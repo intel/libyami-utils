@@ -28,6 +28,7 @@ public:
 
 protected:
     V4L2Renderer(const SharedPtr<V4L2Device>&, VideoDataMemoryType memoryType);
+    virtual ~V4L2Renderer(){};
     bool getDpbSize(uint32_t& dpbSize);
     bool requestBuffers(uint32_t& count);
     bool queueBuffer(uint32_t index, unsigned long userptr = 0);
