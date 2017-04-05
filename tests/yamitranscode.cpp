@@ -78,24 +78,6 @@ static void print_help(const char* app)
     printf("   --btl3 <svc-t layer 3 bitrate: kbps> optional\n");
 }
 
-static VideoRateControl string_to_rc_mode(char *str)
-{
-    VideoRateControl rcMode;
-
-    if (!strcasecmp (str, "CBR"))
-        rcMode = RATE_CONTROL_CBR;
-    else if (!strcasecmp(str, "VBR")) {
-        rcMode = RATE_CONTROL_VBR;
-    }
-    else if (!strcasecmp (str, "CQP"))
-        rcMode = RATE_CONTROL_CQP;
-    else {
-        printf("Unsupport  RC mode\n");
-        rcMode = RATE_CONTROL_NONE;
-    }
-    return rcMode;
-}
-
 static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
 {
     char opt;

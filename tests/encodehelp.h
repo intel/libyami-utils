@@ -59,6 +59,10 @@ static FILE *MVFp;
 #endif
 #endif
 
+VideoRateControl string_to_rc_mode(char* str);
+
+VAProfile string_to_profile(const char* str, const char* mimetype);
+
 static void print_help(const char* app)
 {
     printf("%s <options>\n", app);
@@ -86,23 +90,6 @@ static void print_help(const char* app)
     printf("   --vbv-buffer-size <vbv buffer size in bit> optional\n");
     printf("   --quality-level <encoded video qulity level(default 0), range[%d, %d]> optional\n",
         VIDEO_PARAMS_QUALITYLEVEL_NONE, VIDEO_PARAMS_QUALITYLEVEL_MAX);
-}
-
-static VideoRateControl string_to_rc_mode(char *str)
-{
-    VideoRateControl rcMode;
-
-    if (!strcasecmp (str, "CBR"))
-        rcMode = RATE_CONTROL_CBR;
-    else if (!strcasecmp(str, "VBR"))
-        rcMode = RATE_CONTROL_VBR;
-    else if (!strcasecmp (str, "CQP"))
-        rcMode = RATE_CONTROL_CQP;
-    else {
-        printf("Unsupport  RC mode\n");
-        rcMode = RATE_CONTROL_NONE;
-    }
-    return rcMode;
 }
 
 static bool process_cmdline(int argc, char *argv[])
