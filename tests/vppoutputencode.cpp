@@ -132,6 +132,13 @@ static void setEncodeParam(const SharedPtr<IVideoEncoder>& encoder,
         encVideoParams.temporalLayers.numLayersMinus1 = i;
     }
     encVideoParams.size = sizeof(VideoParamsCommon);
+
+    VAProfile vaProfile;
+    vaProfile = string_to_profile(encParam->strProfile.c_str(), mimeType);
+    if (vaProfile != VAProfileNone) {
+        encVideoParams.profile = vaProfile;
+    }
+
     encoder->setParameters(VideoParamsTypeCommon, &encVideoParams);
 
     VideoParamsHRD encVideoParamsHRD;

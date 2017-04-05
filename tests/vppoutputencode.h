@@ -58,6 +58,7 @@ public:
     unsigned int initBufferFullness; /* in bits */
     unsigned int bufferSize; /* in bits */
     uint32_t qualityLevel;
+    string strProfile;
 };
 
 class TranscodeParams

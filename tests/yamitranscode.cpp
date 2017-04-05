@@ -66,6 +66,14 @@ static void print_help(const char* app)
     printf("   --lowpower <Enable AVC low power mode (default 0, Disabled)> optional\n");
     printf("   --quality-level <encoded video qulity level(default 0), range[%d, %d]> optional\n",
         VIDEO_PARAMS_QUALITYLEVEL_NONE, VIDEO_PARAMS_QUALITYLEVEL_MAX);
+    printf("   --profile optional;\n"
+           "       <values:\n"
+           "           AVC: baseline, main, high;\n"
+           "           HEVC: main, main10;\n"
+           "           VP8: 0;\n"
+           "           VP9: 0;\n"
+           "           JPEG: baseline.\n"
+           "       >\n");
     printf("   VP9 encoder specific options:\n");
     printf("   --refmode <VP9 Reference frames mode (default 0 last(previous), "
            "gold/alt (previous key frame) | 1 last (previous) gold (one before "
@@ -110,6 +118,7 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
         { "vbv-buffer-fullness", required_argument, NULL, 0 },
         { "vbv-buffer-size", required_argument, NULL, 0 },
         { "quality-level", required_argument, NULL, 0 },
+        { "profile", required_argument, NULL, 0 },
         { NULL, no_argument, NULL, 0 }
     };
     int option_index;
@@ -239,6 +248,9 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
                     break;
                 case 27:
                     para.m_encParams.qualityLevel = atoi(optarg);
+                    break;
+                case 28:
+                    para.m_encParams.strProfile.assign(optarg);
                     break;
             }
         }
