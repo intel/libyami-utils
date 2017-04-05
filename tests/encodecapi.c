@@ -71,7 +71,7 @@ int main(int argc, char** argv)
     VideoParamsCommon encVideoParams;
     encVideoParams.size = sizeof(VideoParamsCommon);
     encodeGetParameters(encoder, VideoParamsTypeCommon, &encVideoParams);
-    setEncoderParameters(&encVideoParams);
+    setEncoderParameters(&encVideoParams, getOutputMimeType(output));
     encVideoParams.size = sizeof(VideoParamsCommon);
     encodeSetParameters(encoder, VideoParamsTypeCommon, &encVideoParams);
 
