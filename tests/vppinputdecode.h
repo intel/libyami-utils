@@ -30,12 +30,14 @@ public:
     }
     bool init(const char* inputFileName, uint32_t fourcc = 0, int width = 0, int height = 0);
     bool read(SharedPtr<VideoFrame>& frame);
-
+    void setenableLatencyPrintFlag(bool enableFrameLatencyprint);
+    void getTimeStamp(VideoDecodeBuffer& inputBuffer);
     bool config(NativeDisplay& nativeDisplay);
     virtual ~VppInputDecode() {}
 private:
     bool m_eos;
     bool m_error;
+    bool m_enableprintFrameLatency;
     SharedPtr<IVideoDecoder> m_decoder;
     SharedPtr<DecodeInput>   m_input;
     SharedPtr<VideoFrame>    m_first;

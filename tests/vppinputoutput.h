@@ -23,6 +23,7 @@
 #include <Yami.h>
 
 #include <stdio.h>
+#include <sys/time.h>
 #include <va/va.h>
 #ifndef ANDROID
 #include <va/va_drm.h>
@@ -216,6 +217,8 @@ public:
         int fps = 30);
     bool getFormat(uint32_t& fourcc, int& width, int& height);
     virtual bool output(const SharedPtr<VideoFrame>& frame) = 0;
+    virtual void printFrameLatency(){};
+    virtual void printBitRate(){};
     VppOutput();
     virtual ~VppOutput(){}
 protected:
@@ -231,7 +234,6 @@ class VppOutputFile : public VppOutput
 {
 public:
     bool config(const SharedPtr<FrameWriter>& writer);
-
     //inherit VppOutput
     bool output(const SharedPtr<VideoFrame>& frame);
     virtual ~VppOutputFile();
