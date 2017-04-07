@@ -94,8 +94,11 @@ bool EncodeInputFile::init(const char* inputFileName, uint32_t fourcc, int width
         return false;
     }
 
-    if (!m_fourcc)
+    if (!m_fourcc) {
         m_fourcc = guessFourcc(inputFileName);
+        if (!m_fourcc)
+            m_fourcc = YAMI_FOURCC_I420;
+    }
 
     if (!m_fourcc)
         m_fourcc = VA_FOURCC('I', '4', '2', '0');

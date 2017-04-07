@@ -104,8 +104,11 @@ static bool guessFormat(const char* filename, uint32_t& fourcc, int& width, int&
             return false;
         }
     }
-    if (!fourcc)
+    if (!fourcc) {
         fourcc = guessFourcc(filename);
+        if (!fourcc)
+            fourcc = YAMI_FOURCC_I420;
+    }
 
     return true;
 }
