@@ -29,7 +29,10 @@ typedef struct DecodeParameter {
     uint32_t renderFourcc;
     std::string outputFile;
     bool useCAPI;
-} DecodeParameter;
+    uint32_t temporalLayer;
+    uint32_t spacialLayer;
+    uint32_t qualityLayer;
+} StreamParameter;
 
 bool processCmdLine(int argc, char** argv, DecodeParameter* parameters);
 
