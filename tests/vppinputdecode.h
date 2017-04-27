@@ -32,6 +32,12 @@ public:
     bool read(SharedPtr<VideoFrame>& frame);
 
     bool config(NativeDisplay& nativeDisplay);
+    void setTargetLayer(uint32_t temporal = 0, uint32_t spacial = 0, uint32_t quality = 0)
+    {
+        m_temporalLayer = temporal;
+        m_spacialLayer = spacial;
+        m_qualityLayer = quality;
+    }
     virtual ~VppInputDecode() {}
 private:
     bool m_eos;
@@ -39,6 +45,10 @@ private:
     SharedPtr<IVideoDecoder> m_decoder;
     SharedPtr<DecodeInput>   m_input;
     SharedPtr<VideoFrame>    m_first;
+    //m_xxxLayer layer number, 0: decode all layers, >0: decode up to target layer.
+    uint32_t m_temporalLayer;
+    uint32_t m_spacialLayer;
+    uint32_t m_qualityLayer;
 };
 #endif //vppinputdecode_h
 

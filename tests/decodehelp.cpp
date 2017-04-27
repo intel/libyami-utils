@@ -52,6 +52,9 @@ static void printHelp(const char* app)
     printf("      6: use external dma buf for decode and display, only v4l2decode support this\n");
     printf(" [*] v4l2decode doesn't support the option\n");
     printf("  --capi: use the codec capi to encode or decode, default(false)\n");
+    printf("  --temporal-layer: decode SVC-T stream up to given layer, default 0, only vp8 support\n");
+    printf("      0: decode all layers\n");
+    printf("    N>0: decode the first N layers\n");
 }
 
 bool processCmdLine(int argc, char** argv, DecodeParameter* parameters)
@@ -66,9 +69,11 @@ bool processCmdLine(int argc, char** argv, DecodeParameter* parameters)
     parameters->useCAPI = false;
 
     const struct option long_opts[] = {
-        {"help", no_argument, NULL, 'h'},
-        {"capi", no_argument, NULL, 0},
-        {NULL, no_argument, NULL, 0}};
+        { "help", no_argument, NULL, 'h' },
+        { "capi", no_argument, NULL, 0 },
+        { "temporal-layer", required_argument, NULL, 0 },
+        { NULL, no_argument, NULL, 0 }
+    };
 
     char opt;
     while ((opt = getopt_long_only(argc, argv, "h:m:n:i:f:o:w:?", long_opts,&option_index)) != -1){
@@ -106,6 +111,9 @@ bool processCmdLine(int argc, char** argv, DecodeParameter* parameters)
             switch (option_index) {
             case 1:
                 parameters->useCAPI = true;
+                break;
+            case 2:
+                parameters->temporalLayer = atoi(optarg);
                 break;
             default:
                 printHelp(argv[0]);

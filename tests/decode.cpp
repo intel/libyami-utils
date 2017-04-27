@@ -41,8 +41,11 @@ SharedPtr<VppInput> createInput(DecodeParameter& para, SharedPtr<NativeDisplay>&
             return input;
     }else{
         SharedPtr<VppInputDecode> inputDecode = DynamicPointerCast<VppInputDecode>(input);
-        if (inputDecode && inputDecode->config(*display))
-            return input;
+        if (inputDecode) {
+            inputDecode->setTargetLayer(para.temporalLayer);
+            if (inputDecode->config(*display))
+                return input;
+        }
     }
     input.reset();
     fprintf(stderr, "VppInputDecode config failed.\n");
@@ -53,6 +56,7 @@ class DecodeTest {
 public:
     bool init(int argc, char** argv)
     {
+        memset(&m_params, 0, sizeof(m_params));
         if (!processCmdLine(argc, argv, &m_params)) {
             fprintf(stderr, "process arguments failed.\n");
             return false;
