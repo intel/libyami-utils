@@ -56,7 +56,6 @@ class DecodeTest {
 public:
     bool init(int argc, char** argv)
     {
-        memset(&m_params, 0, sizeof(m_params));
         if (!processCmdLine(argc, argv, &m_params)) {
             fprintf(stderr, "process arguments failed.\n");
             return false;
