@@ -67,6 +67,9 @@ bool processCmdLine(int argc, char** argv, DecodeParameter* parameters)
     parameters->renderMode = 1;
     parameters->inputFile = NULL;
     parameters->useCAPI = false;
+    parameters->temporalLayer = 0;
+    parameters->spacialLayer = 0;
+    parameters->qualityLayer = 0;
 
     const struct option long_opts[] = {
         { "help", no_argument, NULL, 'h' },
