@@ -337,6 +337,7 @@ class DecodeOutputMD5 : public DecodeOutputFile {
 public:
     DecodeOutputMD5(const char* outputFile, const char* inputFile, uint32_t fourcc)
         : DecodeOutputFile(outputFile, inputFile, fourcc)
+        , m_file(NULL)
     {
     }
     virtual ~DecodeOutputMD5();
