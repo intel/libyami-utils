@@ -51,7 +51,7 @@ public:
     uint32_t temporalLayerNum; // svc-t temporal layer number
     uint32_t priorityId; // h264 priority_id in prefix nal unit
     EncodeParamsVP9 m_encParamsVP9;
-    uint32_t layerBitRate[4]; // specify each scalable layer bitrate
+    uint32_t layerBitRate[TEMPORAL_LAYER_LENGTH_MAX]; // specify each scalable layer bitrate
     bool enableLowPower;
     uint32_t targetPercentage;
     uint32_t windowSize; // use for HRD CPB length in ms
