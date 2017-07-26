@@ -55,6 +55,7 @@ static void printHelp(const char* app)
     printf("  --temporal-layer: decode SVC-T stream up to given layer, default 0, only vp8 support\n");
     printf("      0: decode all layers\n");
     printf("    N>0: decode the first N layers\n");
+    printf("  --lowlatency: if set this flag to true, AVC decoder will output the ready frames ASAP\n");
 }
 
 bool processCmdLine(int argc, char** argv, DecodeParameter* parameters)
@@ -70,11 +71,13 @@ bool processCmdLine(int argc, char** argv, DecodeParameter* parameters)
     parameters->temporalLayer = 0;
     parameters->spacialLayer = 0;
     parameters->qualityLayer = 0;
+    parameters->enableLowLatency = false;
 
     const struct option long_opts[] = {
         { "help", no_argument, NULL, 'h' },
         { "capi", no_argument, NULL, 0 },
         { "temporal-layer", required_argument, NULL, 0 },
+        { "lowlatency", no_argument, 0, 0 },
         { NULL, no_argument, NULL, 0 }
     };
 
@@ -117,6 +120,9 @@ bool processCmdLine(int argc, char** argv, DecodeParameter* parameters)
                 break;
             case 2:
                 parameters->temporalLayer = atoi(optarg);
+                break;
+            case 3:
+                parameters->enableLowLatency = true;
                 break;
             default:
                 printHelp(argv[0]);
