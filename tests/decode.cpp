@@ -43,6 +43,7 @@ SharedPtr<VppInput> createInput(DecodeParameter& para, SharedPtr<NativeDisplay>&
         SharedPtr<VppInputDecode> inputDecode = DynamicPointerCast<VppInputDecode>(input);
         if (inputDecode) {
             inputDecode->setTargetLayer(para.temporalLayer);
+            inputDecode->setLowLatency(para.enableLowLatency);
             if (inputDecode->config(*display))
                 return input;
         }

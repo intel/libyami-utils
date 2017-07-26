@@ -43,6 +43,7 @@ bool VppInputDecode::config(NativeDisplay& nativeDisplay)
     configBuffer.width = m_input->getWidth();
     configBuffer.height = m_input->getHeight();
     configBuffer.temporalLayer = m_temporalLayer;
+    configBuffer.enableLowLatency = m_enableLowLatency;
     Decode_Status status = m_decoder->start(&configBuffer);
     if (status == DECODE_SUCCESS) {
         //read first frame to update width height

@@ -32,6 +32,9 @@ typedef struct DecodeParameter {
     uint32_t temporalLayer;
     uint32_t spacialLayer;
     uint32_t qualityLayer;
+
+    //if set this flag to true, AVC decoder will output the ready frames ASAP.
+    bool enableLowLatency;
 } StreamParameter;
 
 bool processCmdLine(int argc, char** argv, DecodeParameter* parameters);

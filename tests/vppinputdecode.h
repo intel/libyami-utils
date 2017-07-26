@@ -38,6 +38,10 @@ public:
         m_spacialLayer = spacial;
         m_qualityLayer = quality;
     }
+    void setLowLatency(bool lowLatency = false)
+    {
+        m_enableLowLatency = lowLatency;
+    }
     virtual ~VppInputDecode() {}
 private:
     bool m_eos;
@@ -49,6 +53,9 @@ private:
     uint32_t m_temporalLayer;
     uint32_t m_spacialLayer;
     uint32_t m_qualityLayer;
+
+    //if set this flag to true, AVC decoder will output the ready frames ASAP.
+    bool m_enableLowLatency;
 };
 #endif //vppinputdecode_h
 
