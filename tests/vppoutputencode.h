@@ -58,6 +58,7 @@ public:
     unsigned int initBufferFullness; /* in bits */
     unsigned int bufferSize; /* in bits */
     uint32_t qualityLevel;
+    char layerIDs[TEMPORAL_LAYERIDS_LENGTH_MAX + 1];
 };
 
 class TranscodeParams

@@ -41,8 +41,6 @@ static void print_help(const char* app)
     printf("   -c <codec: HEVC|AVC|VP8|JPEG>\n");
     printf("   -s <fourcc: I420|NV12|IYUV|YV12>\n");
     printf("   -N <number of frames to encode(camera default 50), useful for camera>\n");
-    printf("   -t <AVC/VP8 scalability temporal layer number  (default 1), just for CQP mode;\n");
-    printf("       for CBR/VBR mode, the layer number is bitrate number + 1> optional\n");
     printf("   --qp <initial qp> optional\n");
     printf("   --rcmode <CBR|CQP|VBR> optional\n");
     printf("   --target-percnetage <target percentage of bitrate in VBR mode, default 95, range in(50-100)> optional\n");
@@ -66,16 +64,19 @@ static void print_help(const char* app)
     printf("   --lowpower <Enable AVC low power mode (default 0, Disabled)> optional\n");
     printf("   --quality-level <encoded video qulity level(default 0), range[%d, %d]> optional\n",
         VIDEO_PARAMS_QUALITYLEVEL_NONE, VIDEO_PARAMS_QUALITYLEVEL_MAX);
-    printf("   VP9 encoder specific options:\n");
-    printf("   --refmode <VP9 Reference frames mode (default 0 last(previous), "
-           "gold/alt (previous key frame) | 1 last (previous) gold (one before "
-           "last) alt (one before gold)> optional\n");
     printf("   VP8/AVC SVC-T bitrate settings, the highest layer bitrate is set via \"-b\"; the other lower \n");
     printf("   layer bitrates are set via the following parameters:\n");
-    printf("   --btl0 <svc-t layer 0 bitrate: kbps> optional\n");
-    printf("   --btl1 <svc-t layer 1 bitrate: kbps > optional\n");
-    printf("   --btl2 <svc-t layer 2 bitrate: kbps> optional\n");
-    printf("   --btl3 <svc-t layer 3 bitrate: kbps> optional\n");
+    printf("       --btl0 <svc-t layer 0 bitrate: kbps> optional\n");
+    printf("       --btl1 <svc-t layer 1 bitrate: kbps > optional\n");
+    printf("       --btl2 <svc-t layer 2 bitrate: kbps> optional\n");
+    printf("       --btl3 <svc-t layer 3 bitrate: kbps> optional\n");
+    printf("   --layerIDs <AVC layer IDs for SVC-T> optional\n");
+    printf("   -t <AVC/VP8 scalability temporal layer number  (default 1), just for CQP mode;\n");
+    printf("      for CBR/VBR mode, the layer number is bitrate number + 1> optional\n");
+    printf("   VP9 encoder specific options:\n");
+    printf("   --refmode <VP9 Reference frames mode (default 0 last(previous), \n"
+           "             gold/alt (previous key frame) | 1 last (previous) gold\n"
+           "             (one before last) alt (one before gold)> optional\n");
 }
 
 static VideoRateControl string_to_rc_mode(char *str)
@@ -128,6 +129,7 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
         { "vbv-buffer-fullness", required_argument, NULL, 0 },
         { "vbv-buffer-size", required_argument, NULL, 0 },
         { "quality-level", required_argument, NULL, 0 },
+        { "layerIDs", required_argument, NULL, 0 },
         { NULL, no_argument, NULL, 0 }
     };
     int option_index;
@@ -257,6 +259,13 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
                     break;
                 case 27:
                     para.m_encParams.qualityLevel = atoi(optarg);
+                    break;
+                case 28:
+                    if (strlen(optarg) > TEMPORAL_LAYERIDS_LENGTH_MAX) {
+                        ERROR("layer IDs length(%ld) > TEMPORAL_LAYERIDS_LENGTH_MAX(%d)", strlen(optarg), TEMPORAL_LAYERIDS_LENGTH_MAX);
+                        assert(0);
+                    }
+                    strcpy(para.m_encParams.layerIDs, optarg);
                     break;
             }
         }
