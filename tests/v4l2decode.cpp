@@ -120,8 +120,10 @@ bool feedOneInputFrame(const SharedPtr<DecodeInput>& input, const SharedPtr<V4L2
 }
 
 
-bool handleResolutionChange(const SharedPtr<V4L2Device>& device)
+bool handleResolutionChange(const SharedPtr<V4L2Device>& device,
+    const SharedPtr<V4L2Renderer>& renderer)
 {
+    DEBUG("+handle resolution change");
     bool resolutionChanged = false;
     // check resolution change
     struct v4l2_event ev;
@@ -133,24 +135,14 @@ bool handleResolutionChange(const SharedPtr<V4L2Device>& device)
             break;
         }
     }
-
-    if (!resolutionChanged)
-        return false;
-
-    struct v4l2_format format;
-    memset(&format, 0, sizeof(format));
-    format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-    if (device->ioctl(VIDIOC_G_FMT, &format) == -1) {
+    if (!resolutionChanged) {
+        WARNING("no resolution change");
         return false;
     }
 
-    // resolution and pixelformat got here
-    outputPlaneCount = format.fmt.pix_mp.num_planes;
-    ASSERT(outputPlaneCount == 2);
-    videoWidth = format.fmt.pix_mp.width;
-    videoHeight = format.fmt.pix_mp.height;
-
-    return true;
+    bool ret =  renderer->onFormatChanged();
+    ERROR("-handle resolution change");
+    return ret;
 }
 
 extern uint32_t v4l2PixelFormatFromMime(const char* mime);
@@ -329,16 +321,17 @@ int main(int argc, char** argv)
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
     ioctlRet = device->ioctl(VIDIOC_STREAMON, &type);
     ASSERT(ioctlRet != -1);
-//#define SEEK_POS  500
+//#define SEEK_POS  1300
 #ifdef SEEK_POS
     uint32_t frames = 0;
+    uint32_t seekPos = rand() % SEEK_POS;
 #endif
 
     bool event_pending=true; // try to get video resolution.
     uint32_t dqCountAfterEOS = 0;
     do {
         if (event_pending) {
-            handleResolutionChange(device);
+            handleResolutionChange(device, renderer);
         }
 
         renderer->renderOneFrame();
@@ -352,7 +345,10 @@ int main(int argc, char** argv)
 
 #ifdef SEEK_POS
         frames++;
-        if (frames == SEEK_POS) {
+        if (frames == seekPos) {
+            ERROR("Seek from %d to pos 0", seekPos);
+            frames = 0;
+            seekPos = rand() % SEEK_POS;
             input.reset(DecodeInput::create(params.inputFile));
             if (!input) {
                 ERROR("fail to init input stream\n");
