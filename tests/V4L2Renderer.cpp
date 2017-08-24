@@ -39,6 +39,9 @@ using namespace YamiMediaCodec;
 V4L2Renderer::V4L2Renderer(const SharedPtr<V4L2Device>& device, VideoDataMemoryType memoryType)
     : m_device(device)
     , m_memoryType(memoryType)
+    , m_dpbSize(0)
+    , m_width(0)
+    , m_height(0)
 {
 }
 
@@ -118,8 +121,73 @@ bool V4L2Renderer::requestBuffers(uint32_t& count)
     reqbufs.count = count;
     int32_t ioctlRet = m_device->ioctl(VIDIOC_REQBUFS, &reqbufs);
     ASSERT(ioctlRet != -1);
-    ASSERT(reqbufs.count > 0);
+    ASSERT(reqbufs.count >= 0);
     count = reqbufs.count;
+    return true;
+}
+
+void V4L2Renderer::streamOff(bool off)
+{
+    uint32_t type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+    int32_t cmd = off ? VIDIOC_STREAMOFF : VIDIOC_STREAMON;
+    int32_t ret = m_device->ioctl(cmd, &type);
+    ASSERT(ret != -1);
+}
+
+bool V4L2Renderer::getSurfaceGeometry(uint32_t& width, uint32_t& height, uint32_t& dpbSize)
+{
+    struct v4l2_format format;
+    memset(&format, 0, sizeof(format));
+    format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+    if (m_device->ioctl(VIDIOC_G_FMT, &format) == -1) {
+        ERROR("get format failed");
+        return false;
+    }
+    if (!getDpbSize(dpbSize)) {
+        ERROR("get DPB size failed");
+        return false;
+    }
+    width = format.fmt.pix_mp.width;
+    height = format.fmt.pix_mp.height;
+    return true;
+}
+
+bool V4L2Renderer::onFormatChanged()
+{
+    DEBUG("onFormatChanged");
+    //drain output;
+    while (renderOneFrame()) {
+        //no thing
+    }
+
+    uint32_t width, height, dpbSize;
+
+    if (!getSurfaceGeometry(width, height, dpbSize)) {
+        ERROR("failed to get geometry");
+        return false;
+    }
+    if (m_width == width
+        && m_height == height
+        && m_dpbSize == dpbSize) {
+        ERROR("report format change but actually no, %dx%d, dpbSize = %d",
+            m_width, m_height, dpbSize);
+        return true;
+    }
+    if (m_width != width
+        || m_height != height) {
+        ERROR("resize window from %dx%d to %dx%d",
+            m_width, m_height, width, height);
+        resizeWindow(width, height);
+    }
+    //real foramt changes
+    streamOff(true);
+    destroyOutputBuffers();
+    uint32_t size = 0;
+    requestBuffers(size);
+    setupOutputBuffers(width, height, dpbSize);
+    m_width = width;
+    m_height = height;
+    streamOff(false);
     return true;
 }
 
@@ -161,6 +229,14 @@ protected:
         if (m_x11Window <= 0)
             return false;
         XMapWindow(m_x11Display, m_x11Window);
+        m_width = width;
+        m_height = height;
+        return true;
+    }
+    bool resizeWindow(uint32_t width, uint32_t height)
+    {
+        XResizeWindow(m_x11Display, m_x11Window, width, height);
+        XSync(m_x11Display, false);
         return true;
     }
     Display* m_x11Display;
@@ -195,17 +271,19 @@ public:
         return true;
     }
 
-    bool setupOutputBuffers(uint32_t width, uint32_t height)
+    bool setupOutputBuffers(uint32_t width, uint32_t height, uint32_t dpbSize)
     {
         if (!createWindow(width, height)) {
             ERROR("Create window failed");
             return false;
         }
-        uint32_t dpbSize;
-        if (!getDpbSize(dpbSize)) {
-            ERROR("get dpb size failed");
-            return false;
+        if (!dpbSize) {
+            if (!getDpbSize(dpbSize)) {
+                ERROR("get dpb size failed");
+                return false;
+            }
         }
+        m_dpbSize = dpbSize;
         uint32_t count = dpbSize + kExtraOutputFrameCount + kFrontSize;
         if (!requestBuffers(count)) {
             ERROR("requestBuffers failed");
@@ -213,7 +291,7 @@ public:
         }
         m_width = width;
         m_height = height;
-        return setupOutputBuffers(width, height, count) && queueOutputBuffersAtStart(count);
+        return createOutputBuffers(width, height, count) && queueOutputBuffersAtStart(count);
     }
 
     bool queueOutputBuffersAtStart(uint32_t count)
@@ -247,9 +325,7 @@ public:
     }
     virtual ~ExternalDmaBufRenderer()
     {
-        if (m_surfaces.size()) {
-            vaDestroySurfaces(m_display->getID(), &m_surfaces[0], m_surfaces.size());
-        }
+        destroyOutputBuffers();
     }
 
 private:
@@ -293,7 +369,7 @@ private:
         checkVaapiStatus(vaDestroyImage(m_display->getID(), image.image_id), "vaDestroyImage");
         return ioctlRet != -1;
     }
-    bool setupOutputBuffers(uint32_t width, uint32_t height, uint32_t count)
+    bool createOutputBuffers(uint32_t width, uint32_t height, uint32_t count)
     {
         m_surfaces.resize(count);
 
@@ -317,6 +393,18 @@ private:
         }
         return true;
     }
+
+    void destroyOutputBuffers()
+    {
+        if (m_surfaces.size()) {
+            vaDestroySurfaces(m_display->getID(), &m_surfaces[0], m_surfaces.size());
+        }
+        m_surfaces.clear();
+        m_dmabuf.clear();
+        m_images.clear();
+        m_front.clear();
+    }
+
     void addAndPopFront(uint32_t& index)
     {
         m_front.push_back(index);
@@ -356,23 +444,37 @@ public:
         , m_eglContext(NULL)
     {
     }
-    bool setupOutputBuffers(uint32_t width, uint32_t height)
+    bool setupOutputBuffers(uint32_t width, uint32_t height, uint32_t dpbSize)
     {
         if (!createWindow(width, height)) {
             ERROR("Create window failed");
             return false;
         }
-        uint32_t dpbSize;
-        if (!getDpbSize(dpbSize)) {
-            ERROR("get dpb size failed");
-            return false;
+        if (!dpbSize) {
+            if (!getDpbSize(dpbSize)) {
+                ERROR("get dpb size failed");
+                return false;
+            }
         }
+        m_dpbSize = dpbSize;
         uint32_t count = dpbSize + kExtraOutputFrameCount;
         if (!requestBuffers(count)) {
             ERROR("requestBuffers failed");
             return false;
         }
         return setupOutputBuffers(count) && queueOutputBuffersAtStart(count);
+    }
+
+    void destroyOutputBuffers()
+    {
+        if (m_textureIds.size())
+            glDeleteTextures(m_textureIds.size(), &m_textureIds[0]);
+        m_textureIds.clear();
+        ASSERT(glGetError() == GL_NO_ERROR);
+        for (size_t i = 0; i < m_eglImages.size(); i++) {
+            destroyImage(m_eglContext->eglContext.display, m_eglImages[i]);
+        }
+        m_eglImages.clear();
     }
     bool render(uint32_t& idx)
     {
@@ -389,12 +491,7 @@ public:
     }
     virtual ~EglRenderer()
     {
-        if (m_textureIds.size())
-            glDeleteTextures(m_textureIds.size(), &m_textureIds[0]);
-        ASSERT(glGetError() == GL_NO_ERROR);
-        for (size_t i = 0; i < m_eglImages.size(); i++) {
-            destroyImage(m_eglContext->eglContext.display, m_eglImages[i]);
-        }
+        destroyOutputBuffers();
         /*
         there is still randomly fail in mesa; no good idea for it. seems mesa bug
         0  0x00007ffff079c343 in _mesa_symbol_table_dtor () from /usr/lib/x86_64-linux-gnu/libdricore9.2.1.so.1

@@ -22,9 +22,10 @@ class V4L2Renderer {
 public:
     static SharedPtr<V4L2Renderer> create(const SharedPtr<V4L2Device>&, VideoDataMemoryType memoryType);
     virtual bool setDisplay() = 0;
-    virtual bool setupOutputBuffers(uint32_t wdith, uint32_t height) = 0;
+    virtual bool setupOutputBuffers(uint32_t wdith, uint32_t height, uint32_t dpbSize = 0) = 0;
     bool renderOneFrame();
     virtual bool queueOutputBuffers() = 0;
+    bool onFormatChanged();
 
 protected:
     V4L2Renderer(const SharedPtr<V4L2Device>&, VideoDataMemoryType memoryType);
@@ -35,7 +36,16 @@ protected:
     bool dequeBuffer(uint32_t& index);
     virtual bool render(uint32_t& index) = 0;
     virtual bool queueOutputBuffersAtStart(uint32_t count) = 0;
+    virtual bool resizeWindow(uint32_t width, uint32_t height) = 0;
+    virtual void destroyOutputBuffers() = 0;
 
     SharedPtr<V4L2Device> m_device;
     VideoDataMemoryType m_memoryType;
+    uint32_t m_dpbSize;
+    uint32_t m_width;
+    uint32_t m_height;
+
+private:
+    void streamOff(bool off);
+    bool getSurfaceGeometry(uint32_t& width, uint32_t& height, uint32_t& dpbSize);
 };
