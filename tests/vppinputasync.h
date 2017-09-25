@@ -37,6 +37,8 @@ public:
     virtual int getHeight() { return m_input->getHeight(); }
     virtual uint32_t getFourcc() { return m_input->getFourcc(); }
 
+    const char *getMimeType() const { return m_input->getMimeType(); }
+
     //do not use this
     bool init(const char* inputFileName, uint32_t fourcc, int width, int height);
 private:

@@ -32,6 +32,7 @@ public:
 
     bool init(const char* inputFileName, uint32_t fourcc = 0, int width = 0, int height = 0);
     bool read(SharedPtr<VideoFrame>& frame);
+    const char *getMimeType() const { return m_input->getMimeType(); }
     bool config(NativeDisplay& nativeDisplay);
 
 private:
