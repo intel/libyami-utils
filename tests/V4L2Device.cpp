@@ -210,7 +210,7 @@ private:
 
 #else
 
-#include "common/v4l2_wrapper.h"
+#include <v4l2_wrapper.h>
 
 class V4L2DeviceYami : public V4L2Device {
 public:

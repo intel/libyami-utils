@@ -24,10 +24,10 @@
 #include <unistd.h>
 #include <linux/videodev2.h>
 #include  <sys/mman.h>
+#include <v4l2_wrapper.h>
 
 #include "common/log.h"
 #include "common/utils.h"
-#include "common/v4l2_wrapper.h"
 #include "encodehelp.h"
 #include "encodeinput.h"
 
