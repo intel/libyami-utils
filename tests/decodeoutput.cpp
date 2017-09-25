@@ -466,11 +466,20 @@ bool DecodeOutputX11::setVideoSize(uint32_t width, uint32_t height)
         DefaultScreen(m_display);
 
         XSetWindowAttributes x11WindowAttrib;
-        x11WindowAttrib.event_mask = KeyPressMask;
+        x11WindowAttrib.event_mask = ExposureMask;
         m_window = XCreateWindow(m_display, DefaultRootWindow(m_display),
             0, 0, width, height, 0, CopyFromParent, InputOutput,
             CopyFromParent, CWEventMask, &x11WindowAttrib);
         XMapWindow(m_display, m_window);
+
+        // If we allow vaPutSurface to be called before the window is exposed
+        // then those frames will not get displayed on the window.  Thus, wait
+        // for the Expose event from X before we return.
+        XEvent e;
+        while(true) {
+            XNextEvent(m_display, &e);
+            if (e.type == Expose) break;
+        }
     }
     XSync(m_display, false);
     {
