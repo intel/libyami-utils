@@ -89,6 +89,9 @@ public:
                 break;
         }
         fps.log();
+
+        possibleWait(m_vppInput->getMimeType(), &m_params);
+
         return true;
     }
 

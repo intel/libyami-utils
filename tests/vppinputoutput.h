@@ -179,6 +179,7 @@ public:
         create(const char* inputFileName, uint32_t fourcc = 0, int width = 0, int height = 0, bool useCAPI = false);
     virtual bool init(const char* inputFileName = 0, uint32_t fourcc = 0, int width = 0, int height = 0) = 0;
     virtual bool read(SharedPtr<VideoFrame>& frame) = 0;
+    virtual const char * getMimeType() const = 0;
     virtual int getWidth() { return m_width; }
     virtual int getHeight() { return m_height; }
     virtual uint32_t getFourcc() { return m_fourcc; }
@@ -195,7 +196,7 @@ public:
     //inherit VppInput
     bool init(const char* inputFileName, uint32_t fourcc, int width, int height);
     virtual bool read(SharedPtr<VideoFrame>& frame);
-
+    const char *getMimeType() const { return "unknown"; }
     bool config(const SharedPtr<FrameAllocator>& allocator, const SharedPtr<FrameReader>& reader);
     VppInputFile();
     ~VppInputFile();
