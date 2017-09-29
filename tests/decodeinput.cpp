@@ -99,6 +99,8 @@ public:
     bool isSyncWord(const uint8_t* buf);
 private:
     int m_countSOI;
+    int m_skipBytes;
+    bool m_needPayloadLength;
 };
 
 DecodeInput::DecodeInput()
@@ -383,6 +385,8 @@ DecodeInputJPEG::DecodeInputJPEG()
 {
     StartCodeSize = 2;
     m_countSOI = 0;
+    m_skipBytes = 0;
+    m_needPayloadLength = false;
 }
 
 DecodeInputJPEG::~DecodeInputJPEG()
@@ -397,8 +401,37 @@ const char *DecodeInputJPEG::getMimeType()
 
 bool DecodeInputJPEG::isSyncWord(const uint8_t* buf)
 {
+    if (m_skipBytes > 0) {
+        --m_skipBytes;
+        return false;
+    }
+
+    if (m_needPayloadLength) {
+        // The length is represented in a two-byte field.  It's value represents
+        // the two bytes for the length plus the number of bytes in the payload.
+        // We're currently processing the first byte of this field, hence we
+        // only need to skip (length - 1) more bytes.
+        m_skipBytes = (((buf[0] << 8) | buf[1]) & 0xffff) - 1;
+        m_needPayloadLength = false;
+        return false;
+    }
+
     if (buf[0] != 0xff)
         return false;
+
+    // If this is an APP marker, skip it's payload since they are notorious for
+    // having SOI and EOI markers in them.
+    if (buf[1] >= 0xe0 && buf[1] <= 0xef && m_countSOI == 1) {
+        // We can only read a max of StartCodeSize(2) bytes at a time...
+        // anything beyond that would risk reading past the end of the buffer.
+        // Thus, set flag so we can get the payload length in successive
+        // re-entry calls.
+        m_needPayloadLength = true;
+        // We want to skip over current buf[1] in next re-entry call since it's
+        // the APP marker and will be at buf[0] in the next entry.
+        m_skipBytes = 1;
+        return false;
+    }
 
     if (buf[1] == 0xD8)
         m_countSOI++;
