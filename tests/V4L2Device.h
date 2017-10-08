@@ -21,7 +21,7 @@
 #include <X11/Xlib.h>
 #endif
 
-#if __ENABLE_TESTS_GLES__
+#if __ENABLE_EGL__
 #include <EGL/egl.h>
 #endif
 
@@ -40,7 +40,7 @@ public:
     virtual int32_t munmap(void* addr, size_t length) = 0;
     virtual int32_t setFrameMemoryType(VideoDataMemoryType memory_type) = 0;
 
-#if __ENABLE_TESTS_GLES__
+#if __ENABLE_EGL__
     virtual int32_t useEglImage(/*EGLDisplay*/ void* eglDisplay, /*EGLContext*/ void* eglContext,
         uint32_t bufferIndex, void* eglImage)
         = 0;

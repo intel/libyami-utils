@@ -120,7 +120,7 @@ public:
         return -1;
     }
 
-#if __ENABLE_TESTS_GLES__
+#if __ENABLE_EGL__
     int32_t useEglImage(/*EGLDisplay*/ void* eglDisplay, /*EGLContext*/ void* eglContext,
         uint32_t bufferIndex, void* eglImage)
     {
@@ -253,7 +253,7 @@ public:
         return YamiV4L2_FrameMemoryType(m_fd, type);
     }
 
-#if __ENABLE_TESTS_GLES__
+#if __ENABLE_EGL__
     int32_t useEglImage(/*EGLDisplay*/ void* eglDisplay, /*EGLContext*/ void* eglContext,
         uint32_t bufferIndex, void* eglImage)
     {
