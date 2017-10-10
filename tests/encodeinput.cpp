@@ -259,6 +259,12 @@ const char* EncodeOutputHEVC::getMimeType()
     return YAMI_MIME_HEVC;
 }
 
+void setUint64(uint8_t* header, uint64_t value)
+{
+    uint64_t* h = (uint64_t*)header;
+    *h = value;
+}
+
 void setUint32(uint8_t* header, uint32_t value)
 {
     uint32_t* h = (uint32_t*)header;
@@ -299,6 +305,7 @@ bool EncodeOutputVPX::write(void* data, int size)
     uint8_t header[12];
     memset(header, 0, sizeof(header));
     setUint32(header, size);
+    setUint64(&header[4], m_frameCount);
     if (!EncodeOutput::write(&header, sizeof(header)))
         return false;
     if (!EncodeOutput::write(data, size))
