@@ -52,8 +52,9 @@
 #include <vector>
 #include <sys/stat.h>
 #include <sstream>
-#include <stdio.h>
 #include <assert.h>
+#include <fstream>
+#include <iostream>
 
 using namespace YamiMediaCodec;
 using std::vector;
@@ -337,7 +338,7 @@ class DecodeOutputMD5 : public DecodeOutputFile {
 public:
     DecodeOutputMD5(const char* outputFile, const char* inputFile, uint32_t fourcc)
         : DecodeOutputFile(outputFile, inputFile, fourcc)
-        , m_file(NULL)
+        , m_file()
     {
     }
     virtual ~DecodeOutputMD5();
@@ -350,7 +351,7 @@ private:
     std::string getOutputFileName(uint32_t width, uint32_t height);
     std::string writeToFile(MD5_CTX&);
 
-    FILE* m_file;
+    std::ofstream m_file;
     static MD5_CTX m_fileMD5;
     vector<uint8_t> m_data;
 };
@@ -375,9 +376,10 @@ std::string DecodeOutputMD5::getOutputFileName(uint32_t width, uint32_t height)
 }
 bool DecodeOutputMD5::setVideoSize(uint32_t width, uint32_t height)
 {
-    if (!m_file) {
+    if (!m_file.is_open()) {
         std::string name = getOutputFileName(width, height);
-        m_file = fopen(name.c_str(), "wb");
+        m_file.open(name.c_str(), std::ofstream::out | std::ofstream::binary
+            | std::ofstream::trunc);
         if (!m_file) {
             //ERROR("fail to open input file: %s", name.c_str());
             return false;
@@ -399,18 +401,18 @@ std::string DecodeOutputMD5::writeToFile(MD5_CTX& t_ctx)
         snprintf(temp, sizeof(temp), "%02x", (uint32_t)result[i]);
         strMD5 += temp;
     }
-    if (m_file)
-        fprintf(m_file, "%s\n", strMD5.c_str());
+    if (m_file.is_open())
+        m_file << strMD5 << std::endl;
     return strMD5;
 }
 
 DecodeOutputMD5::~DecodeOutputMD5()
 {
-    if (m_file) {
-        fprintf(m_file, "The whole frames MD5 ");
+    if (m_file.is_open()) {
+        m_file << "The whole frames MD5 ";
         std::string fileMd5 = writeToFile(m_fileMD5);
-        fprintf(stderr, "The whole frames MD5:\n%s\n", fileMd5.c_str());
-        fclose(m_file);
+        std::cerr << "The whole frames MD5:" << std::endl
+            << fileMd5 << std::endl;
     }
 }
 
