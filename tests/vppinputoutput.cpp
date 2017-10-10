@@ -80,7 +80,7 @@ SharedPtr<VppInput> VppInput::create(const char* inputFileName, uint32_t fourcc,
 }
 
 VppInputFile::VppInputFile()
-    : m_fp(NULL)
+    : m_ifs()
     , m_readToEOS(false)
 {
 }
@@ -120,8 +120,8 @@ bool VppInputFile::init(const char* inputFileName, uint32_t fourcc, int width, i
     m_height = height;
     m_fourcc = fourcc;
 
-    m_fp = fopen(inputFileName, "r");
-    if (!m_fp) {
+    m_ifs.open(inputFileName);
+    if (!m_ifs) {
         fprintf(stderr, "fail to open input file: %s", inputFileName);
         return false;
     }
@@ -143,15 +143,13 @@ bool VppInputFile::read(SharedPtr<VideoFrame>& frame)
         return false;
     }
 
-    if (!m_reader->read(m_fp, frame))
+    if (!m_reader->read(m_ifs, frame))
         m_readToEOS = true;
     return !m_readToEOS;
 }
 
 VppInputFile::~VppInputFile()
 {
-    if(m_fp)
-        fclose(m_fp);
 }
 
 VppOutput::VppOutput()
@@ -204,8 +202,9 @@ bool VppOutputFile::init(const char* outputFileName, uint32_t fourcc, int width,
     m_fourcc = fourcc;
     m_width = width;
     m_height = height;
-    m_fp = fopen(outputFileName, "wb");
-    if (!m_fp) {
+    m_ofs.open(outputFileName, std::ofstream::out | std::ofstream::binary
+        | std::ofstream::trunc);
+    if (!m_ofs) {
         ERROR("fail to open input file: %s", outputFileName);
         return false;
     }
@@ -221,8 +220,6 @@ bool VppOutputFile::config(const SharedPtr<FrameWriter>& writer)
 
 VppOutputFile::~VppOutputFile()
 {
-    if (m_fp)
-        fclose(m_fp);
 }
 
 bool VppOutputFile::output(const SharedPtr<VideoFrame>& frame)
@@ -238,10 +235,10 @@ bool VppOutputFile::write(const SharedPtr<VideoFrame>& frame)
     }
     if (!frame)
         return true;
-    return m_writer->write(m_fp, frame);
+    return m_writer->write(m_ofs, frame);
 }
 
 VppOutputFile::VppOutputFile()
-    :m_fp(NULL)
+    :m_ofs()
 {
 }

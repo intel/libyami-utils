@@ -22,7 +22,6 @@
 #include "common/PooledFrameAllocator.h"
 #include <Yami.h>
 
-#include <stdio.h>
 #include <va/va.h>
 #ifndef ANDROID
 #include <va/va_drm.h>
@@ -31,6 +30,7 @@
 #include <limits.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <fstream>
 
 using namespace YamiMediaCodec;
 
@@ -54,29 +54,30 @@ SharedPtr<VADisplay> createVADisplay();
 class FrameReader
 {
 public:
-    virtual bool read(FILE* fp,const SharedPtr<VideoFrame>& frame) = 0;
+    virtual bool read(std::ifstream&, const SharedPtr<VideoFrame>& frame) = 0;
     virtual ~FrameReader() {}
 };
 
 class FrameWriter
 {
 public:
-    virtual bool write(FILE* fp,const SharedPtr<VideoFrame>& frame) = 0;
+    virtual bool write(std::ofstream&, const SharedPtr<VideoFrame>& frame) = 0;
     virtual ~FrameWriter() {}
 };
 
+template <typename T>
 class VaapiFrameIO
 {
 public:
-    typedef bool (*FileIoFunc)(char* ptr, int size, FILE* fp);
+    typedef bool (*FileIoFunc)(char* ptr, int size, T& fs);
     VaapiFrameIO(const SharedPtr<VADisplay>& display, FileIoFunc io)
         :m_display(display), m_io(io)
     {
 
     };
-    bool doIO(FILE* fp, const SharedPtr<VideoFrame>& frame)
+    bool doIO(T& fs, const SharedPtr<VideoFrame>& frame)
     {
-        if (!fp || !frame) {
+        if (!fs || !fs.is_open() || !frame) {
             ERROR("invalid param");
             return false;
         }
@@ -113,7 +114,7 @@ public:
             ptr += image.pitches[i] * byteY[i];
             int w = byteWidth[i];
             for (uint32_t j = 0; j < byteHeight[i]; j++) {
-                ret = m_io(ptr + byteX[i], w, fp);
+                ret = m_io(ptr + byteX[i], w, fs);
                 if (!ret)
                     goto out;
                 ptr += image.pitches[i];
@@ -135,18 +136,18 @@ class VaapiFrameReader:public FrameReader
 {
 public:
     VaapiFrameReader(const SharedPtr<VADisplay>& display)
-        :m_frameio(new VaapiFrameIO(display, readFromFile))
+        :m_frameio(new VaapiFrameIO<std::ifstream>(display, readFromFile))
     {
     }
-    bool read(FILE* fp, const SharedPtr<VideoFrame>& frame)
+    bool read(std::ifstream& ifs, const SharedPtr<VideoFrame>& frame)
     {
-        return m_frameio->doIO(fp, frame);
+        return m_frameio->doIO(ifs, frame);
     }
 private:
-    SharedPtr<VaapiFrameIO> m_frameio;
-    static bool readFromFile(char* ptr, int size, FILE* fp)
+    SharedPtr< VaapiFrameIO<std::ifstream> > m_frameio;
+    static bool readFromFile(char* ptr, int size, std::ifstream& ifs)
     {
-        return fread(ptr, 1, size, fp) == (size_t)size;
+        return ifs.read(ptr, size).good();
     }
 };
 
@@ -154,18 +155,18 @@ class VaapiFrameWriter:public FrameWriter
 {
 public:
     VaapiFrameWriter(const SharedPtr<VADisplay>& display)
-        :m_frameio(new VaapiFrameIO(display, writeToFile))
+        :m_frameio(new VaapiFrameIO<std::ofstream>(display, writeToFile))
     {
     }
-    bool write(FILE* fp, const SharedPtr<VideoFrame>& frame)
+    bool write(std::ofstream& ofs, const SharedPtr<VideoFrame>& frame)
     {
-        return m_frameio->doIO(fp, frame);
+        return m_frameio->doIO(ofs, frame);
     }
 private:
-    SharedPtr<VaapiFrameIO> m_frameio;
-    static bool writeToFile(char* ptr, int size, FILE* fp)
+    SharedPtr< VaapiFrameIO<std::ofstream> > m_frameio;
+    static bool writeToFile(char* ptr, int size, std::ofstream& ofs)
     {
-        return fwrite(ptr, 1, size, fp) == (size_t)size;
+        return ofs.write(ptr, size).good();
     }
 };
 //vaapi related operation end
@@ -201,7 +202,7 @@ public:
     VppInputFile();
     ~VppInputFile();
 protected:
-    FILE *m_fp;
+    std::ifstream m_ifs;
     bool m_readToEOS;
     SharedPtr<FrameReader> m_reader;
     SharedPtr<FrameAllocator> m_allocator;
@@ -244,7 +245,7 @@ protected:
 private:
     bool write(const SharedPtr<VideoFrame>& frame);
     SharedPtr<FrameWriter> m_writer;
-    FILE* m_fp;
+    std::ofstream m_ofs;
 };
 
 #endif      //vppinputoutput_h
