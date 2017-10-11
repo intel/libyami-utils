@@ -84,8 +84,10 @@ static void print_help(const char* app)
     printf("   --hrd-window-size <windows size in milliseconds, default 1000> optional\n");
     printf("   --vbv-buffer-fullness <vbv initial buffer fullness in bit> optional\n");
     printf("   --vbv-buffer-size <vbv buffer size in bit> optional\n");
-    printf("   --quality-level <encoded video qulity level(default 0), range[%d, %d]> optional\n",
-        VIDEO_PARAMS_QUALITYLEVEL_NONE, VIDEO_PARAMS_QUALITYLEVEL_MAX);
+    printf("   --quality-level <encoded video quality level (default 0), "
+           "JPEG valid range[1, 100], HEVC|AVC|VP8|VP9 valid range[%d, %d], "
+           "a value of 0 means CODEC will use its own internal default value> "
+           "optional\n", VIDEO_PARAMS_QUALITYLEVEL_NONE, VIDEO_PARAMS_QUALITYLEVEL_MAX);
 }
 
 static VideoRateControl string_to_rc_mode(char *str)
