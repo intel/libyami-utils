@@ -20,10 +20,16 @@
 
 #include "vppinputdecodecapi.h"
 
-static void freeFrame(VideoFrame* frame)
-{
-    frame->free(frame);
-}
+class SharedPtrHold {
+public:
+    SharedPtrHold(SharedPtr<VideoFrame> frame)
+        : frame(frame)
+    {
+    }
+
+public:
+    SharedPtr<VideoFrame> frame;
+};
 
 VppInputDecodeCapi::~VppInputDecodeCapi()
 {
@@ -67,7 +73,11 @@ bool VppInputDecodeCapi::read(SharedPtr<VideoFrame>& frame)
     while (1) {
         VideoFrame* tmp = decodeGetOutput(m_decoder);
         if (tmp) {
-            frame.reset(tmp, freeFrame);
+            SharedPtrHold* hold = (SharedPtrHold*)tmp->user_data;
+            frame = hold->frame;
+            //free user_data
+            frame->free(frame.get());
+
             return true;
         }
         if (m_error || m_eos)
