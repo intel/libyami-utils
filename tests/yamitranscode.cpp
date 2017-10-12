@@ -64,8 +64,10 @@ static void print_help(const char* app)
     printf("   --ow <output width> optional\n");
     printf("   --oh <output height> optional\n");
     printf("   --lowpower <Enable AVC low power mode (default 0, Disabled)> optional\n");
-    printf("   --quality-level <encoded video qulity level(default 0), range[%d, %d]> optional\n",
-        VIDEO_PARAMS_QUALITYLEVEL_NONE, VIDEO_PARAMS_QUALITYLEVEL_MAX);
+    printf("   --quality-level <encoded video quality level (default 0), "
+           "JPEG valid range[1, 100], HEVC|AVC|VP8|VP9 valid range[%d, %d], "
+           "a value of 0 means CODEC will use its own internal default value> "
+           "optional\n", VIDEO_PARAMS_QUALITYLEVEL_NONE, VIDEO_PARAMS_QUALITYLEVEL_MAX);
     printf("   VP9 encoder specific options:\n");
     printf("   --refmode <VP9 Reference frames mode (default 0 last(previous), "
            "gold/alt (previous key frame) | 1 last (previous) gold (one before "
