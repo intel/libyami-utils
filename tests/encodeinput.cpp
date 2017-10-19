@@ -17,7 +17,6 @@
 #include "config.h"
 #endif
 
-#include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
@@ -71,7 +70,7 @@ EncodeInput * EncodeInput::create(const char* inputFileName, uint32_t fourcc, in
 }
 
 EncodeInputFile::EncodeInputFile()
-    : m_fp(NULL)
+    : m_ifs()
     , m_buffer(NULL)
     , m_readToEOS(false)
 {
@@ -117,8 +116,8 @@ bool EncodeInputFile::init(const char* inputFileName, uint32_t fourcc, int width
     break;
     }
 
-    m_fp = fopen(inputFileName, "r");
-    if (!m_fp) {
+    m_ifs.open(inputFileName);
+    if (!m_ifs) {
         fprintf(stderr, "fail to open input file: %s", inputFileName);
         return false;
     }
@@ -136,7 +135,7 @@ bool EncodeInputFile::getOneFrameInput(VideoFrameRawData &inputBuffer)
     if (inputBuffer.handle)
         buffer = reinterpret_cast<uint8_t*>(inputBuffer.handle);
 
-    size_t ret = fread(buffer, sizeof(uint8_t), m_frameSize, m_fp);
+    size_t ret = m_ifs.read(reinterpret_cast<char*>(buffer), m_frameSize).gcount();
 
     if (ret <= 0) {
         m_readToEOS = true;
@@ -153,21 +152,15 @@ bool EncodeInputFile::getOneFrameInput(VideoFrameRawData &inputBuffer)
 
 EncodeInputFile::~EncodeInputFile()
 {
-    if(m_fp)
-        fclose(m_fp);
-
-    if(m_buffer)
-        free(m_buffer);
+    free(m_buffer);
 }
 
-EncodeOutput::EncodeOutput():m_fp(NULL)
+EncodeOutput::EncodeOutput():m_ofs()
 {
 }
 
 EncodeOutput::~EncodeOutput()
 {
-    if (m_fp)
-        fclose(m_fp);
 }
 
 EncodeOutput* EncodeOutput::create(const char* outputFileName, int width,
@@ -221,8 +214,8 @@ EncodeOutput* EncodeOutput::create(const char* outputFileName, int width,
 
 bool EncodeOutput::init(const char* outputFileName, int width, int height, int fps)
 {
-    m_fp = fopen(outputFileName, "w+");
-    if (!m_fp) {
+    m_ofs.open(outputFileName, std::ofstream::out | std::ofstream::trunc);
+    if (!m_ofs) {
         fprintf(stderr, "fail to open output file: %s\n", outputFileName);
         return false;
     }
@@ -231,7 +224,7 @@ bool EncodeOutput::init(const char* outputFileName, int width, int height, int f
 
 bool EncodeOutput::write(void* data, int size)
 {
-    return fwrite(data, 1, size, m_fp) == (size_t)size;
+    return m_ofs.write(reinterpret_cast<const char*>(data), size).good();
 }
 
 const char* EncodeOutputH264::getMimeType()
@@ -321,7 +314,7 @@ EncodeOutputVPX::EncodeOutputVPX()
 
 EncodeOutputVPX::~EncodeOutputVPX()
 {
-    if (m_fp && !fseek(m_fp, 24,SEEK_SET)) {
+    if (m_ofs && m_ofs.seekp(24).good()) {
         EncodeOutput::write(&m_frameCount, sizeof(m_frameCount));
     }
 }

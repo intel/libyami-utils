@@ -20,10 +20,11 @@
 #include "config.h"
 #endif
 
-#include <stdio.h>
 #include <Yami.h>
 #include "common/NonCopyable.h"
 #include <vector>
+#include <fstream>
+#include <iostream>
 #if ANDROID
 #include <gui/Surface.h>
 #include <android/native_window.h>
@@ -66,7 +67,7 @@ public:
     virtual bool isEOS() {return m_readToEOS;}
 
 protected:
-    FILE *m_fp;
+    std::ifstream m_ifs;
     uint8_t *m_buffer;
     bool m_readToEOS;
 private:
@@ -140,7 +141,7 @@ public:
     virtual const char* getMimeType() = 0;
 protected:
     virtual bool init(const char* outputFileName, int width, int height, int fps = 30);
-    FILE *m_fp;
+    std::ofstream m_ofs;
 };
 
 class EncodeOutputH264 : public EncodeOutput
