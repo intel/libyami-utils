@@ -41,7 +41,7 @@ public:
     virtual bool init() = 0;
     virtual const string& getCodecData();
 protected:
-    FILE *m_fp;
+    std::ifstream m_ifs;
     uint8_t *m_buffer;
     bool m_readToEOS;
     bool m_parseToEOS;
@@ -161,7 +161,7 @@ void DecodeInput::setResolution(const uint16_t width, const uint16_t height)
 }
 
 MyDecodeInput::MyDecodeInput()
-    : m_fp(NULL)
+    : m_ifs()
     , m_buffer(NULL)
     , m_readToEOS(false)
     , m_parseToEOS(false)
@@ -170,17 +170,13 @@ MyDecodeInput::MyDecodeInput()
 
 MyDecodeInput::~MyDecodeInput()
 {
-    if(m_fp)
-        fclose(m_fp);
-
-    if(m_buffer)
-        free(m_buffer);
+    free(m_buffer);
 }
 
 bool MyDecodeInput::initInput(const char* fileName)
 {
-    m_fp = fopen(fileName, "r");
-    if (!m_fp) {
+    m_ifs.open(fileName);
+    if(!m_ifs) {
         fprintf(stderr, "fail to open input file: %s\n", fileName);
         return false;
     }
@@ -226,7 +222,7 @@ bool DecodeInputVPX::init()
     IvfHeader header;
     size_t size = sizeof(header);
     assert(size == 32);
-    if (size != fread (&header, 1, size, m_fp)) {
+    if (size != unsigned(m_ifs.read(reinterpret_cast<char*>(&header), size).gcount())) {
         fprintf (stderr, "fail to read ivf header, quit\n");
         return false;
     }
@@ -244,13 +240,17 @@ bool DecodeInputVPX::init()
 
 bool DecodeInputVPX::getNextDecodeUnit(VideoDecodeBuffer &inputBuffer)
 {
-    if(m_ivfFrmHdrSize == fread (m_buffer, 1, m_ivfFrmHdrSize, m_fp)) {
+    if(m_ivfFrmHdrSize == unsigned(m_ifs.read(
+                                   reinterpret_cast<char*>(m_buffer),
+                                   m_ivfFrmHdrSize).gcount())) {
         size_t framesize = 0;
         framesize = (uint32_t)(m_buffer[0]) + ((uint32_t)(m_buffer[1])<<8) + ((uint32_t)(m_buffer[2])<<16);
         assert (framesize < m_maxFrameSize);
         assert (framesize <= CacheBufferSize);
 
-        if (framesize != fread (m_buffer, 1, framesize, m_fp)) {
+    if (framesize != unsigned(m_ifs.read(
+                              reinterpret_cast<char*>(m_buffer),
+                              framesize).gcount())) {
             fprintf (stderr, "fail to read frame data, quit\n");
             return false;
         }
@@ -304,8 +304,9 @@ bool DecodeInputRaw::ensureBufferData()
         m_availableData = m_availableData-m_lastReadOffset;
         m_lastReadOffset = 0;
     }
-
-    readCount = fread(m_buffer + m_availableData, 1, CacheBufferSize-m_availableData, m_fp);
+    readCount = unsigned(m_ifs.read(
+                         reinterpret_cast<char*>(m_buffer + m_availableData),
+                         CacheBufferSize-m_availableData).gcount());
     if (readCount < CacheBufferSize-m_availableData)
         m_readToEOS = true;
 
