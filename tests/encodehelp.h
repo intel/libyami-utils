@@ -40,6 +40,7 @@ static uint32_t initBufferFullness = 0;
 static uint32_t windowSize = 1000;
 static uint32_t targetPercentage = 95;
 static uint32_t qualityLevel = VIDEO_PARAMS_QUALITYLEVEL_NONE;
+static std::string strProfile;
 
 #ifdef __BUILD_GET_MV__
 static FILE *MVFp;
@@ -58,6 +59,10 @@ static FILE *MVFp;
 #define false 0
 #endif
 #endif
+
+VideoRateControl string_to_rc_mode(char* str);
+
+VAProfile string_to_profile(const char* str, const char* mimetype);
 
 static void print_help(const char* app)
 {
@@ -86,23 +91,14 @@ static void print_help(const char* app)
     printf("   --vbv-buffer-size <vbv buffer size in bit> optional\n");
     printf("   --quality-level <encoded video qulity level(default 0), range[%d, %d]> optional\n",
         VIDEO_PARAMS_QUALITYLEVEL_NONE, VIDEO_PARAMS_QUALITYLEVEL_MAX);
-}
-
-static VideoRateControl string_to_rc_mode(char *str)
-{
-    VideoRateControl rcMode;
-
-    if (!strcasecmp (str, "CBR"))
-        rcMode = RATE_CONTROL_CBR;
-    else if (!strcasecmp(str, "VBR"))
-        rcMode = RATE_CONTROL_VBR;
-    else if (!strcasecmp (str, "CQP"))
-        rcMode = RATE_CONTROL_CQP;
-    else {
-        printf("Unsupport  RC mode\n");
-        rcMode = RATE_CONTROL_NONE;
-    }
-    return rcMode;
+    printf("   --profile optional;\n"
+           "       <values:\n"
+           "           AVC: baseline, main, high;\n"
+           "           HEVC: main, main10;\n"
+           "           VP8: 0;\n"
+           "           VP9: 0;\n"
+           "           JPEG: baseline.\n"
+           "       >\n");
 }
 
 static bool process_cmdline(int argc, char *argv[])
@@ -123,6 +119,7 @@ static bool process_cmdline(int argc, char *argv[])
         { "vbv-buffer-fullness", required_argument, NULL, 0 },
         { "vbv-buffer-size", required_argument, NULL, 0 },
         { "quality-level", required_argument, NULL, 0 },
+        { "profile", required_argument, NULL, 0 },
         { NULL, no_argument, NULL, 0 }
     };
     int option_index;
@@ -208,6 +205,9 @@ static bool process_cmdline(int argc, char *argv[])
                 case 13:
                     qualityLevel = atoi(optarg);
                     break;
+                case 14:
+                    strProfile.assign(optarg);
+                    break;
             }
         }
     }
@@ -243,8 +243,9 @@ void ensureInputParameters()
 
 }
 
-void setEncoderParameters(VideoParamsCommon* encVideoParams)
+void setEncoderParameters(VideoParamsCommon* encVideoParams, const char* mimeType)
 {
+    VAProfile vaProfile;
     ensureInputParameters();
     //resolution
     encVideoParams->resolution.width = videoWidth;
@@ -265,7 +266,10 @@ void setEncoderParameters(VideoParamsCommon* encVideoParams)
     encVideoParams->bitDepth = bitDepth;
     //encVideoParams->rcParams.minQP = 1;
 
-    //encVideoParams->profile = VAProfileH264Main;
+    vaProfile = string_to_profile(strProfile.c_str(), mimeType);
+    if (VAProfileNone != vaProfile)
+        encVideoParams->profile = vaProfile;
+
     //encVideoParams->profile = VAProfileVP8Version0_3;
 }
 

@@ -80,7 +80,7 @@ int main(int argc, char** argv)
     VideoParamsCommon encVideoParams;
     encVideoParams.size = sizeof(VideoParamsCommon);
     encoder->getParameters(VideoParamsTypeCommon, &encVideoParams);
-    setEncoderParameters(&encVideoParams);
+    setEncoderParameters(&encVideoParams, output->getMimeType());
     encVideoParams.size = sizeof(VideoParamsCommon);
     encoder->setParameters(VideoParamsTypeCommon, &encVideoParams);
 

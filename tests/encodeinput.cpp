@@ -33,6 +33,66 @@ using namespace YamiMediaCodec;
 
 #define MAX_WIDTH  8192
 #define MAX_HEIGHT 4320
+
+VideoRateControl string_to_rc_mode(char* str)
+{
+    VideoRateControl rcMode;
+
+    if (!strcasecmp(str, "CBR"))
+        rcMode = RATE_CONTROL_CBR;
+    else if (!strcasecmp(str, "VBR"))
+        rcMode = RATE_CONTROL_VBR;
+    else if (!strcasecmp(str, "CQP"))
+        rcMode = RATE_CONTROL_CQP;
+    else {
+        printf("Unsupport  RC mode\n");
+        rcMode = RATE_CONTROL_NONE;
+    }
+    return rcMode;
+}
+
+VAProfile string_to_profile(const char* str, const char* mimetype)
+{
+    VAProfile vaProfile = VAProfileNone;
+    if ((str == NULL) || (mimetype == NULL))
+        return VAProfileNone;
+    if ((!strlen(str)) || (!strlen(mimetype))) {
+        DEBUG("mime type( %s ) or proile ( %s ) are illegal!", mimetype, str);
+        return VAProfileNone;
+    }
+
+    if (!strcasecmp(str, "baseline")) {
+        if ((!strcasecmp(mimetype, YAMI_MIME_H264)) || (!strcasecmp(mimetype, YAMI_MIME_AVC)))
+            vaProfile = VAProfileH264Baseline;
+        else if (strcasecmp(mimetype, YAMI_MIME_JPEG))
+            vaProfile = VAProfileJPEGBaseline;
+    }
+    else if (!strcasecmp(str, "main")) {
+        if ((!strcasecmp(mimetype, YAMI_MIME_H264)) || (!strcasecmp(mimetype, YAMI_MIME_AVC)))
+            vaProfile = VAProfileH264Main;
+        else if ((!strcasecmp(mimetype, YAMI_MIME_H265)) || (!strcasecmp(mimetype, YAMI_MIME_HEVC)))
+            vaProfile = VAProfileHEVCMain;
+    }
+    else if (!strcasecmp(str, "high")) {
+        vaProfile = VAProfileH264High;
+    }
+    else if (!strcasecmp(str, "main10")) {
+        vaProfile = VAProfileHEVCMain10;
+    }
+    else if (!strcasecmp(str, "0")) {
+        if (!strcasecmp(mimetype, YAMI_MIME_VP8))
+            vaProfile = VAProfileVP8Version0_3;
+        else if (!strcasecmp(mimetype, YAMI_MIME_VP9))
+            vaProfile = VAProfileVP9Profile0;
+    }
+    else {
+    }
+
+    if (VAProfileNone == vaProfile)
+        ERROR("mime type( %s ) isn't compatible with proile ( %s )!", mimetype, str);
+    return vaProfile;
+}
+
 EncodeInput * EncodeInput::create(const char* inputFileName, uint32_t fourcc, int width, int height)
 {
     EncodeInput *input = NULL;

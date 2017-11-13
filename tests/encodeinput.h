@@ -37,6 +37,11 @@ using namespace YamiMediaCodec;
 class EncodeInput;
 class EncodeInputFile;
 class EncodeInputCamera;
+
+VideoRateControl string_to_rc_mode(char* str);
+
+VAProfile string_to_profile(const char* str, const char* mimetype);
+
 class EncodeInput {
 public:
     static EncodeInput* create(const char* inputFileName, uint32_t fourcc, int width, int height);
