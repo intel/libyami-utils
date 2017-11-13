@@ -16,7 +16,8 @@
 #ifndef decodeinput_h
 #define decodeinput_h
 
-#include <stdio.h>
+#include <fstream>
+#include <iostream>
 #include <string>
 #include <Yami.h>
 
