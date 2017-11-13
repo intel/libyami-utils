@@ -74,6 +74,7 @@ public:
     uint32_t fourcc;
     string inputFileName;
     string outputFileName;
+    uint32_t startupSize;
 };
 
 class VppOutputEncode : public VppOutput

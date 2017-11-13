@@ -21,18 +21,22 @@
 #include "vppoutputencode.h"
 #include "encodeinput.h"
 #include "common/log.h"
+#include "tests/vppinputasync.h"
 #include <Yami.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
 #include <string.h>
+#include <deque>
 
 using namespace YamiMediaCodec;
 
 void usage();
 
-SharedPtr<VppInput> createInput(const char* filename, const SharedPtr<VADisplay>& display)
+SharedPtr<VppInput> createInput(const char* filename, const SharedPtr<VADisplay>& display, uint32_t startupSize)
 {
+    const uint32_t kQueueSize = 5;
+    const uint32_t kExtraSize = 3;
     SharedPtr<VppInput> input(VppInput::create(filename));
     if (!input) {
         ERROR("creat input failed");
@@ -41,10 +45,13 @@ SharedPtr<VppInput> createInput(const char* filename, const SharedPtr<VADisplay>
     SharedPtr<VppInputFile> inputFile = DynamicPointerCast<VppInputFile>(input);
     if (inputFile) {
         SharedPtr<FrameReader> reader(new VaapiFrameReader(display));
-        SharedPtr<FrameAllocator> alloctor(new PooledFrameAllocator(display, 5));
+        SharedPtr<FrameAllocator> alloctor(new PooledFrameAllocator(display, kQueueSize + kExtraSize + startupSize));
         inputFile->config(alloctor, reader);
     }
-    return inputFile;
+    if (input) {
+        input = VppInputAsync::create(input, kQueueSize, startupSize); //make input in other thread.
+    }
+    return input;
 }
 
 SharedPtr<VppOutput> createOutput(const char* filename, const SharedPtr<VADisplay>& display)
@@ -100,6 +107,9 @@ public:
         , m_brightness(COLORBALANCE_LEVEL_NONE)
         , m_contrast(COLORBALANCE_LEVEL_NONE)
 #endif
+        , m_count(-1)
+        , m_startupSize(0)
+        , m_skipDump(false)
     {
     }
     bool init(int argc, char** argv)
@@ -115,7 +125,7 @@ public:
             ERROR("create vpp failed");
             return false;
         }
-        m_input = createInput(m_inputName, m_display);
+        m_input = createInput(m_inputName, m_display, m_startupSize);
         m_output = createOutput(m_outputName, m_display);
         if (!m_input || !m_output) {
             printf("create input or output failed");
@@ -125,12 +135,27 @@ public:
         return bool(m_allocator);
     }
 
+    void flushGPU()
+    {
+        std::deque<SharedPtr<VideoFrame> > frames;
+        SharedPtr<VideoFrame> f;
+        do {
+            f = m_allocator->alloc();
+            if (!f)
+                break;
+            vaSyncSurface(*m_display, f->surface);
+            frames.push_back(f);
+        } while (true);
+    }
+
     bool run()
     {
 
         SharedPtr<VideoFrame> src, dest;
         YamiStatus  status;
-        int count = 0;
+
+        FpsCalc fps;
+        uint32_t count = 0;
         while (m_input->read(src)) {
             dest = m_allocator->alloc();
             status = m_vpp->process(src, dest);
@@ -138,14 +163,25 @@ public:
                 ERROR("vpp process failed, status = %d", status);
                 return true;
             }
-            m_output->output(dest);
+
+            if (!m_skipDump)
+                m_output->output(dest);
             count++;
+            fps.addFrame();
+
+            if (count >= m_count)
+                break;
         }
         //flush output
         dest.reset();
         m_output->output(dest);
 
-        printf("%d frame processed\n", count);
+        //this will force all gpu operation finish. to get real performance
+        if (m_skipDump) {
+            flushGPU();
+        }
+        fps.log();
+
         return true;
     }
 private:
@@ -161,6 +197,9 @@ private:
             { "sat", required_argument, NULL, 0 },
             { "br", required_argument, NULL, 0 },
             { "con", required_argument, NULL, 0 },
+            { "startup-size", required_argument, NULL, 0 },
+            { "count", required_argument, NULL, 'n' },
+            { "skip-dump", no_argument, NULL, 0 },
             { NULL, no_argument, NULL, 0 }
         };
         int option_index;
@@ -170,7 +209,7 @@ private:
             return false;
         }
 
-        while ((opt = getopt_long_only(argc, argv, "s:h:", long_opts, &option_index)) != -1) {
+        while ((opt = getopt_long_only(argc, argv, "s:h:n:", long_opts, &option_index)) != -1) {
             switch (opt) {
             case 'h':
             case '?':
@@ -178,6 +217,9 @@ private:
                 return false;
             case 's':
                 m_sharpening = atoi(optarg);
+                break;
+            case 'n':
+                m_count = atoi(optarg);
                 break;
             case 0:
                 switch (option_index) {
@@ -198,6 +240,12 @@ private:
                     break;
                 case 7:
                     m_contrast = atoi(optarg);
+                    break;
+                case 8:
+                    m_startupSize = atoi(optarg);
+                    break;
+                case 10:
+                    m_skipDump = true;
                     break;
                 default:
                     usage();
@@ -313,6 +361,9 @@ private:
     int32_t m_saturation;
     int32_t m_brightness;
     int32_t m_contrast;
+    uint32_t m_count;
+    uint32_t m_startupSize;
+    bool m_skipDump;
 };
 
 void usage()
@@ -328,6 +379,8 @@ void usage()
     printf("       --sat <level>, optional, saturation level, range [0, 100] or -1, -1: delete this filter\n");
     printf("       --br <level>, optional, brightness level, range [0, 100] or -1, -1: delete this filter\n");
     printf("       --con <level>, optional, constrast level, range [0, 100] or -1, -1: delete this filter\n");
+    printf("       --startup-size <size>, optional, preload yuv size\n");
+    printf("       -n <count>, optional, stop at <count> frames\n");
 }
 
 int main(int argc, char** argv)
