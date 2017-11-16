@@ -51,6 +51,7 @@ EncodeParams::EncodeParams()
     , qualityLevel(VIDEO_PARAMS_QUALITYLEVEL_NONE)
 {
     memset(layerBitRate, 0, sizeof(layerBitRate));
+    memset(layerIDs, 0, sizeof(layerIDs));
 }
 
 TranscodeParams::TranscodeParams()
@@ -131,6 +132,11 @@ static void setEncodeParam(const SharedPtr<IVideoEncoder>& encoder,
         }
         encVideoParams.temporalLayers.numLayersMinus1 = i;
     }
+    encVideoParams.temporalLayerIDs.numIDs = strlen(encParam->layerIDs);
+    for (uint8_t i = 0; i < encVideoParams.temporalLayerIDs.numIDs; i++) {
+        encVideoParams.temporalLayerIDs.ids[i] = encParam->layerIDs[i] - '0';
+    }
+
     encVideoParams.size = sizeof(VideoParamsCommon);
     encoder->setParameters(VideoParamsTypeCommon, &encVideoParams);
 
