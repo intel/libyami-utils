@@ -41,7 +41,7 @@
 #ifdef __ENABLE_WAYLAND__
 #include <va/va_wayland.h>
 #endif
-#ifdef __ENABLE_TESTS_GLES__
+#ifdef __ENABLE_EGL__
 #include "./egl/gles2_help.h"
 #include "egl/egl_util.h"
 #include "egl/egl_vaapi_image.h"
@@ -541,7 +541,7 @@ bool DecodeOutputXWindow::output(const SharedPtr<VideoFrame>& frame)
     return checkVaapiStatus(status, "vaPutSurface");
 }
 
-#ifdef __ENABLE_TESTS_GLES__
+#ifdef __ENABLE_EGL__
 class DecodeOutputEgl : public DecodeOutputX11 {
 public:
     DecodeOutputEgl();
@@ -732,7 +732,7 @@ DecodeOutputDmabuf::DecodeOutputDmabuf(VideoDataMemoryType memoryType)
 {
 }
 
-#endif //__ENABLE_TESTS_GLES__
+#endif //__ENABLE_EGL__
 #endif //__ENABLE_X11__
 
 #ifdef __ENABLE_WAYLAND__
@@ -928,7 +928,7 @@ DecodeOutput* DecodeOutput::create(int renderMode, uint32_t fourcc, const char* 
     case 1:
         output = new DecodeOutputXWindow();
         break;
-#ifdef __ENABLE_TESTS_GLES__
+#ifdef __ENABLE_EGL__
     case 2:
         output = new DecodeOutputPixelMap();
         break;
@@ -938,7 +938,7 @@ DecodeOutput* DecodeOutput::create(int renderMode, uint32_t fourcc, const char* 
     case 4:
         output = new DecodeOutputDmabuf(VIDEO_DATA_MEMORY_TYPE_DMA_BUF);
         break;
-#endif //__ENABLE_TESTS_GLES__
+#endif //__ENABLE_EGL__
 #endif //__ENABLE_X11__
 
 #ifdef __ENABLE_WAYLAND__
