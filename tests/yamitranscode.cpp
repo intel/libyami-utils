@@ -395,7 +395,7 @@ public:
             return false;
         }
         m_input = createInput(m_cmdParam, m_display);
-        m_output = createOutput(m_cmdParam, m_display, m_input->getFourcc());
+        m_output = createOutput(m_cmdParam, m_display, m_cmdParam.fourcc);
         if (!m_input || !m_output) {
             ERROR("create input or output failed");
             return false;
