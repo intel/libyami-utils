@@ -17,7 +17,8 @@
 #include "config.h"
 #endif
 
-#include <stdio.h>
+#include <iostream>
+#include <fstream>
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -147,23 +148,23 @@ bool feedOneInputFrame(int fd, int index = -1 /* if index is not -1, simple enqu
 
 bool writeOneOutputFrame(uint8_t* data, uint32_t dataSize)
 {
-    static FILE* fp = NULL;
+    static std::ofstream m_ofs;
 
-    if(!fp) {
-        fp = fopen(outputFileName, "w+");
-        if (!fp) {
+    if(!m_ofs.is_open()) {
+        m_ofs.open((outputFileName, std::ofstream::out | std::ofstream::trunc);
+        if (!m_ofs) {
             fprintf(stderr, "fail to open file: %s\n", outputFileName);
             return false;
         }
     }
 
-    if (fwrite(data, 1, dataSize, fp) != dataSize) {
+    if(!m_ofs.write(reinterpret_cast<const char*>(data), dataSize).good()) {
         ASSERT(0);
         return false;
     }
 
     if(isOutputEOS)
-        fclose(fp);
+        m_ofs.close();
 
     return true;
 
