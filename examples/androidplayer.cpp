@@ -27,10 +27,10 @@
 #include <gui/ISurfaceComposer.h>
 #include <ui/DisplayInfo.h>
 #include <android/native_window.h>
-#include <ufo/gralloc.h>
 #include <system/window.h>
 #include <ui/GraphicBufferMapper.h>
-#include <ufo/graphics.h>
+#include <hardware/hardware.h>
+#include <hardware/gralloc1.h>
 #include <va/va_android.h>
 #include <va/va.h>
 #include <map>
@@ -47,6 +47,42 @@ using namespace YamiMediaCodec;
 #endif
 
 #define ANDROID_DISPLAY 0x18C34078
+
+class Gralloc1
+{
+public:
+    static SharedPtr<Gralloc1> create()
+    {
+        SharedPtr<Gralloc1> g(new Gralloc1);
+        if (!g->init())
+            g.reset();
+        return g;
+    }
+    bool getPitch(buffer_handle_t handle, uint32_t& pitch)
+    {
+        return m_getStride(m_device, handle, &pitch) == 0;
+    }
+
+    ~Gralloc1()
+    {
+        if (m_device)
+             gralloc1_close(m_device);
+        //how to close module?
+
+    }
+
+private:
+    bool init()
+    {
+        CHECK_EQ(0,  hw_get_module(GRALLOC_HARDWARE_MODULE_ID, &m_module));
+        CHECK_EQ(0, gralloc1_open(m_module, &m_device));
+        m_getStride =  (GRALLOC1_PFN_GET_STRIDE)m_device->getFunction(m_device, GRALLOC1_FUNCTION_GET_STRIDE);
+        return m_getStride;
+    }
+    const struct hw_module_t* m_module = NULL;
+    gralloc1_device_t* m_device = NULL;
+    GRALLOC1_PFN_GET_STRIDE m_getStride = NULL;
+};
 
 class AndroidPlayer
 {
@@ -128,7 +164,6 @@ public:
 
     AndroidPlayer() : m_width(0), m_height(0)
     {
-        hw_get_module(GRALLOC_HARDWARE_MODULE_ID, (hw_module_t const**)&m_pGralloc);
     }
 
     ~AndroidPlayer()
@@ -152,7 +187,8 @@ private:
         m_nativeDisplay.reset(new NativeDisplay);
         m_nativeDisplay->type = NATIVE_DISPLAY_VA;
         m_nativeDisplay->handle = (intptr_t)m_vaDisplay;
-        return true;
+        m_gralloc = Gralloc1::create();
+        return m_gralloc.get();
     }
 
     bool createVpp()
@@ -179,6 +215,7 @@ private:
 
     bool initWindow()
     {
+        const int HAL_PIXEL_FORMAT_NV12_Y_TILED_INTEL = 0x100;
         static sp<SurfaceComposerClient> client = new SurfaceComposerClient();
         //create surface
         static sp<SurfaceControl> surfaceCtl = client->createSurface(String8("testsurface"), 800, 600, HAL_PIXEL_FORMAT_NV12_Y_TILED_INTEL, 0);
@@ -187,19 +224,21 @@ private:
         SurfaceComposerClient::openGlobalTransaction();
         surfaceCtl->setLayer(100000);
         surfaceCtl->setPosition(100, 100);
-        surfaceCtl->setSize(800, 600);
+        surfaceCtl->setSize(1920, 1080);
         SurfaceComposerClient::closeGlobalTransaction();
 
         m_surface = surfaceCtl->getSurface();
 
         static sp<ANativeWindow> mNativeWindow = m_surface;
-        int bufWidth = 640;
-        int bufHeight = 480;
+        int bufWidth = 1920;
+        int bufHeight = 1088;
+
+        int consumerUsage = 0;
+        CHECK_EQ(NO_ERROR, mNativeWindow->query(mNativeWindow.get(), NATIVE_WINDOW_CONSUMER_USAGE_BITS, &consumerUsage));
         CHECK_EQ(0,
                  native_window_set_usage(
                  mNativeWindow.get(),
-                 GRALLOC_USAGE_SW_READ_NEVER | GRALLOC_USAGE_SW_WRITE_OFTEN
-                 | GRALLOC_USAGE_HW_TEXTURE | GRALLOC_USAGE_EXTERNAL_DISP));
+                 consumerUsage));
 
         CHECK_EQ(0,
                  native_window_set_scaling_mode(
@@ -211,6 +250,9 @@ private:
                     bufWidth,
                     bufHeight,
                     HAL_PIXEL_FORMAT_NV12_Y_TILED_INTEL));
+
+
+        CHECK_EQ(0, native_window_api_connect(mNativeWindow.get(), NATIVE_WINDOW_API_MEDIA));
 
         status_t err;
         err = native_window_set_buffer_count(mNativeWindow.get(), 5);
@@ -226,18 +268,9 @@ private:
     {
         SharedPtr<VideoFrame> frame;
 
-        intel_ufo_buffer_details_t info;
-        memset(&info, 0, sizeof(info));
-        *reinterpret_cast<uint32_t*>(&info) = sizeof(info);
-
-        int err = 0;
-        if (m_pGralloc)
-            err = m_pGralloc->perform(m_pGralloc, INTEL_UFO_GRALLOC_MODULE_PERFORM_GET_BO_INFO, (buffer_handle_t)buf->handle, &info);
-
-        if (0 != err || !m_pGralloc) {
-            fprintf(stderr, "create vaSurface failed\n");
+        uint32_t pitch;
+        if (!m_gralloc->getPitch(buf->handle, pitch))
             return frame;
-        }
 
         VASurfaceAttrib attrib;
         memset(&attrib, 0, sizeof(attrib));
@@ -248,7 +281,7 @@ private:
         external.pixel_format = VA_FOURCC_NV12;
         external.width = buf->width;
         external.height = buf->height;
-        external.pitches[0] = info.pitch;
+        external.pitches[0] = pitch;
         external.num_planes = 2;
         external.num_buffers = 1;
         uint8_t* handle = (uint8_t*)buf->handle;
@@ -272,7 +305,7 @@ private:
         frame->surface = static_cast<intptr_t>(id);
         frame->crop.width = buf->width;
         frame->crop.height = buf->height;
-
+        ERROR("id = %x\r\n", id);
         return frame;
     }
 
@@ -283,6 +316,7 @@ private:
         sp<ANativeWindow> mNativeWindow = m_surface;
         ANativeWindowBuffer* buf;
 
+        printf("+wait\n");
         err = native_window_dequeue_buffer_and_wait(mNativeWindow.get(), &buf);
         if (err != 0) {
             fprintf(stderr, "dequeueBuffer failed: %s (%d)\n", strerror(-err), -err);
@@ -312,9 +346,9 @@ private:
     SharedPtr<IVideoDecoder> m_decoder;
     SharedPtr<DecodeInput> m_input;
     int m_width, m_height;
+    SharedPtr<Gralloc1> m_gralloc;
 
     sp<Surface> m_surface;
-    gralloc_module_t* m_pGralloc;
     std::map< ANativeWindowBuffer*, SharedPtr<VideoFrame> > m_buff;
     SharedPtr<IVideoPostProcess> m_vpp;
 };
