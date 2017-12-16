@@ -1,64 +1,185 @@
 LOCAL_PATH := $(call my-dir)
 
-## v4l2decoder
+#libinputoutput
 include $(CLEAR_VARS)
 include $(LOCAL_PATH)/../common.mk
 
 LOCAL_SRC_FILES := \
-        decodehelp.cpp \
-        decodeinput.cpp \
-        vppinputoutput.cpp \
-        v4l2decode.cpp
+    decodeinput.cpp \
+    decodeoutput.cpp \
+    encodeinput.cpp \
+    vppinputdecode.cpp \
+    vppinputdecodecapi.cpp \
+    vppinputoutput.cpp \
+    vppoutputencode.cpp \
+    vppinputasync.cpp \
+    md5.c \
 
-LOCAL_C_INCLUDES:= \
+LOCAL_C_INCLUDES := \
         $(LOCAL_PATH)/.. \
-        external/libcxx/include \
         $(LOCAL_PATH)/../interface \
+        $(LOCAL_PATH)/../tests \
+        external/libcxx/include \
         $(TARGET_OUT_HEADERS)/libva
 
 LOCAL_SHARED_LIBRARIES := \
-        libyami_v4l2 \
         libutils \
+        liblog \
+        libc++ \
+        libva \
+        libva-android \
         libgui \
-
-ifeq ($(ENABLE-V4L2-OPS),true)
-LOCAL_SHARED_LIBRARIES += libdl
-endif
+        libhardware \
+        libyami \
 
 LOCAL_CPPFLAGS += \
-         -fpermissive
+        -frtti
 
-ifeq ($(ENABLE-V4L2-OPS),true)
-LOCAL_CPPFLAGS += -D__ENABLE_V4L2_OPS__
-endif
 
-LOCAL_MODULE := v4l2decode
+LOCAL_PROPRIETARY_MODULE := true
+
+LOCAL_MODULE := libinputoutput
+include $(BUILD_STATIC_LIBRARY)
+
+
+###yamidecode
+include $(CLEAR_VARS)
+include $(LOCAL_PATH)/../common.mk
+LOCAL_SRC_FILES := \
+    decodehelp.cpp \
+    decode.cpp \
+
+LOCAL_C_INCLUDES := \
+        $(LOCAL_PATH)/.. \
+        $(LOCAL_PATH)/../interface \
+        $(LOCAL_PATH)/../tests \
+        external/libcxx/include \
+        $(TARGET_OUT_HEADERS)/libva
+
+LOCAL_SHARED_LIBRARIES := \
+        libutils \
+        liblog \
+        libc++ \
+        libva \
+        libva-android \
+        libgui \
+        libhardware \
+        libyami \
+
+LOCAL_CPPFLAGS += \
+        -frtti
+
+LOCAL_MULTILIB := both
+LOCAL_STATIC_LIBRARIES := libinputoutput
+LOCAL_PROPRIETARY_MODULE := true
+LOCAL_MODULE := yamidecode
+LOCAL_MODULE_STEM_32 := $(LOCAL_MODULE)32
+LOCAL_MODULE_STEM_64 := $(LOCAL_MODULE)64
 include $(BUILD_EXECUTABLE)
 
-## v4l2encoder
+
+###yamivpp
 include $(CLEAR_VARS)
 include $(LOCAL_PATH)/../common.mk
-
 LOCAL_SRC_FILES := \
-        encodeinput.cpp \
-        encodeInputSurface.cpp \
-        v4l2encode.cpp
+    vpp.cpp \
 
-LOCAL_C_INCLUDES:= \
+LOCAL_C_INCLUDES := \
         $(LOCAL_PATH)/.. \
-        external/libcxx/include \
         $(LOCAL_PATH)/../interface \
+        $(LOCAL_PATH)/../tests \
+        external/libcxx/include \
         $(TARGET_OUT_HEADERS)/libva
 
 LOCAL_SHARED_LIBRARIES := \
-        libyami_v4l2 \
         libutils \
+        liblog \
+        libc++ \
+        libva \
+        libva-android \
         libgui \
-        libui \
-        liblog
+        libhardware \
+        libyami \
 
 LOCAL_CPPFLAGS += \
-         -fpermissive
+        -frtti
 
-LOCAL_MODULE := v4l2encode
+LOCAL_MULTILIB := both
+LOCAL_STATIC_LIBRARIES := libinputoutput
+LOCAL_PROPRIETARY_MODULE := true
+LOCAL_MODULE := yamivpp
+LOCAL_MODULE_STEM_32 := $(LOCAL_MODULE)32
+LOCAL_MODULE_STEM_64 := $(LOCAL_MODULE)64
+include $(BUILD_EXECUTABLE)
+
+
+###yamiencode
+include $(CLEAR_VARS)
+include $(LOCAL_PATH)/../common.mk
+LOCAL_SRC_FILES := \
+    encode.cpp \
+
+LOCAL_C_INCLUDES := \
+        $(LOCAL_PATH)/.. \
+        $(LOCAL_PATH)/../interface \
+        $(LOCAL_PATH)/../tests \
+        external/libcxx/include \
+        $(TARGET_OUT_HEADERS)/libva
+
+LOCAL_SHARED_LIBRARIES := \
+        libutils \
+        liblog \
+        libc++ \
+        libva \
+        libva-android \
+        libgui \
+        libhardware \
+        libyami \
+
+LOCAL_CPPFLAGS += \
+        -frtti
+
+LOCAL_MULTILIB := both
+LOCAL_STATIC_LIBRARIES := libinputoutput
+LOCAL_PROPRIETARY_MODULE := true
+LOCAL_MODULE := yamiencode
+LOCAL_MODULE_STEM_32 := $(LOCAL_MODULE)32
+LOCAL_MODULE_STEM_64 := $(LOCAL_MODULE)64
+
+include $(BUILD_EXECUTABLE)
+
+
+###yamitranscode
+include $(CLEAR_VARS)
+include $(LOCAL_PATH)/../common.mk
+LOCAL_SRC_FILES := \
+    yamitranscode.cpp \
+
+LOCAL_C_INCLUDES := \
+        $(LOCAL_PATH)/.. \
+        $(LOCAL_PATH)/../interface \
+        $(LOCAL_PATH)/../tests \
+        external/libcxx/include \
+        $(TARGET_OUT_HEADERS)/libva
+
+LOCAL_SHARED_LIBRARIES := \
+        libutils \
+        liblog \
+        libc++ \
+        libva \
+        libva-android \
+        libgui \
+        libhardware \
+        libyami \
+
+LOCAL_CPPFLAGS += \
+        -frtti
+
+LOCAL_MULTILIB := both
+LOCAL_STATIC_LIBRARIES := libinputoutput
+LOCAL_PROPRIETARY_MODULE := true
+LOCAL_MODULE := yamitranscode
+LOCAL_MODULE_STEM_32 := $(LOCAL_MODULE)32
+LOCAL_MODULE_STEM_64 := $(LOCAL_MODULE)64
+
 include $(BUILD_EXECUTABLE)

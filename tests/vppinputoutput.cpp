@@ -56,6 +56,33 @@ SharedPtr<VADisplay> createVADisplay()
     display.reset(new VADisplay(vadisplay), VADisplayDeleter(fd));
     return display;
 }
+#else
+#include <va/va_android.h>
+struct AndroidDisplayDeleter
+{
+    AndroidDisplayDeleter() {}
+    void operator()(VADisplay* display)
+    {
+        vaTerminate(*display);
+        delete display;
+    }
+};
+
+#define ANDROID_DISPLAY 0x18C34078
+SharedPtr<VADisplay> createVADisplay()
+{
+    SharedPtr<VADisplay> display;
+    unsigned int magic = ANDROID_DISPLAY;
+    VADisplay vadisplay = vaGetDisplay(&magic);
+    int majorVersion, minorVersion;
+    VAStatus vaStatus = vaInitialize(vadisplay, &majorVersion, &minorVersion);
+    if (vaStatus != VA_STATUS_SUCCESS) {
+        ERROR("va init failed, status =  %d", vaStatus);
+        return display;
+    }
+    display.reset(new VADisplay(vadisplay), AndroidDisplayDeleter());
+    return display;
+}
 #endif
 
 SharedPtr<VppInput> VppInput::create(const char* inputFileName, uint32_t fourcc, int width, int height, bool useCAPI)
