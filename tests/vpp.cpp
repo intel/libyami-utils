@@ -99,6 +99,7 @@ public:
         , m_saturation(COLORBALANCE_LEVEL_NONE)
         , m_brightness(COLORBALANCE_LEVEL_NONE)
         , m_contrast(COLORBALANCE_LEVEL_NONE)
+        , m_rotationDegree(0)
 #endif
     {
     }
@@ -170,7 +171,7 @@ private:
             return false;
         }
 
-        while ((opt = getopt_long_only(argc, argv, "s:h:", long_opts, &option_index)) != -1) {
+        while ((opt = getopt_long_only(argc, argv, "s:h:r:", long_opts, &option_index)) != -1) {
             switch (opt) {
             case 'h':
             case '?':
@@ -178,6 +179,9 @@ private:
                 return false;
             case 's':
                 m_sharpening = atoi(optarg);
+                break;
+            case 'r':
+                m_rotationDegree = atoi(optarg);
                 break;
             case 0:
                 switch (option_index) {
@@ -271,6 +275,8 @@ private:
         setClrBalance(COLORBALANCE_SATURATION, m_saturation);
         setClrBalance(COLORBALANCE_BRIGHTNESS, m_brightness);
         setClrBalance(COLORBALANCE_CONTRAST, m_contrast);
+
+        setTransformMode(mapToTransformMode(m_rotationDegree));
 #endif
         return true;
     }
@@ -299,6 +305,30 @@ private:
         }
         return true;
     }
+    bool setTransformMode(VppTransform transform)
+    {
+        VppParamTransform paramTransform;
+        memset(&paramTransform, 0, sizeof(paramTransform));
+        paramTransform.size = sizeof(paramTransform);
+        paramTransform.transform = transform;
+        if (m_vpp->setParameters(VppParamTypeTransform, &paramTransform) != YAMI_SUCCESS) {
+            return false;
+        }
+        return true;
+    }
+    VppTransform mapToTransformMode(uint32_t degree)
+    {
+        switch (degree) {
+        case 90:
+            return VPP_TRANSFORM_ROT_90;
+        case 180:
+            return VPP_TRANSFORM_ROT_180;
+        case 270:
+            return VPP_TRANSFORM_ROT_270;
+        default:
+            return VPP_TRANSFORM_NONE;
+        }
+    }
     SharedPtr<VADisplay> m_display;
     SharedPtr<VppInput> m_input;
     SharedPtr<VppOutput> m_output;
@@ -313,6 +343,7 @@ private:
     int32_t m_saturation;
     int32_t m_brightness;
     int32_t m_contrast;
+    int32_t m_rotationDegree;
 };
 
 void usage()
@@ -322,6 +353,7 @@ void usage()
     printf("current supported format are i420, yv12, nv12\n");
     printf("usage: yamivpp <option> input_1920x1080.i420 output_320x240.yv12\n");
     printf("       -s <level> optional, sharpening level\n");
+    printf("       -r <level> optional, rotation angle: 0, 90, 180, 270; default 0\n");
     printf("       --dn <level> optional, denoise level\n");
     printf("       --di <mode>, optional, deinterlace mode, only support bob\n");
     printf("       --hue <level>, optional, hue level, range [0, 100] or -1, -1: delete this filter\n");
