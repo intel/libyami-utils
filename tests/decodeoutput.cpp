@@ -22,16 +22,9 @@
 #include "common/log.h"
 #include "common/VaapiUtils.h"
 
-#if __ENABLE_MD5__
-// including bsd/md5.h produces a warning with __bounded__ attribute,
-// libyami-utils chooses to ignore this particular warning by pushing the
-// current environment, ignoring attributes and then poping to restore the
-// environment.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wattributes"
-#include <bsd/md5.h>
-#pragma GCC diagnostic pop
-#endif
+extern "C" {
+#include "md5.h"
+}
 
 #ifdef __ENABLE_X11__
 #include <X11/Xlib.h>
@@ -333,7 +326,6 @@ bool DecodeOutputDump::output(const SharedPtr<VideoFrame>& frame)
     return m_output->output(dest);
 }
 
-#if __ENABLE_MD5__
 class DecodeOutputMD5 : public DecodeOutputFile {
 public:
     DecodeOutputMD5(const char* outputFile, const char* inputFile, uint32_t fourcc)
@@ -384,7 +376,7 @@ bool DecodeOutputMD5::setVideoSize(uint32_t width, uint32_t height)
             //ERROR("fail to open input file: %s", name.c_str());
             return false;
         }
-        MD5Init(&m_fileMD5);
+        MD5_Init(&m_fileMD5);
         return true;
     }
     return DecodeOutputFile::setVideoSize(width, height);
@@ -395,7 +387,7 @@ std::string DecodeOutputMD5::writeToFile(MD5_CTX& t_ctx)
     char temp[4];
     uint8_t result[16] = { 0 };
     std::string strMD5;
-    MD5Final(result, &t_ctx);
+    MD5_Final(result, &t_ctx);
     for(uint32_t i = 0; i < 16; i++) {
         memset(temp, 0, sizeof(temp));
         snprintf(temp, sizeof(temp), "%02x", (uint32_t)result[i]);
@@ -427,16 +419,14 @@ bool DecodeOutputMD5::output(const SharedPtr<VideoFrame>& frame)
         return false;
 
     MD5_CTX frameMD5;
-    MD5Init(&frameMD5);
-    MD5Update(&frameMD5, &m_data[0], m_data.size());
+    MD5_Init(&frameMD5);
+    MD5_Update(&frameMD5, &m_data[0], m_data.size());
     writeToFile(frameMD5);
 
-    MD5Update(&m_fileMD5, &m_data[0], m_data.size());
+    MD5_Update(&m_fileMD5, &m_data[0], m_data.size());
 
     return true;
 }
-
-#endif //__ENABLE_MD5__
 
 #ifdef __ENABLE_X11__
 class DecodeOutputX11 : public DecodeOutput
@@ -915,11 +905,9 @@ DecodeOutput* DecodeOutput::create(int renderMode, uint32_t fourcc, const char* 
 {
     DecodeOutput* output;
     switch (renderMode) {
-#ifdef __ENABLE_MD5__
     case -2:
         output = new DecodeOutputMD5(outputFile, inputFile, fourcc);
         break;
-#endif //__ENABLE_MD5__
     case -1:
         output = new DecodeOutputNull();
         break;
