@@ -271,29 +271,51 @@ private:
             }
         }
 
-        setClrBalance(COLORBALANCE_HUE, m_hue);
-        setClrBalance(COLORBALANCE_SATURATION, m_saturation);
-        setClrBalance(COLORBALANCE_BRIGHTNESS, m_brightness);
-        setClrBalance(COLORBALANCE_CONTRAST, m_contrast);
+        if (!setClrBalance(COLORBALANCE_HUE, m_hue))
+            return false;
+        if (!setClrBalance(COLORBALANCE_SATURATION, m_saturation))
+            return false;
+        if (!setClrBalance(COLORBALANCE_BRIGHTNESS, m_brightness))
+            return false;
+        if (!setClrBalance(COLORBALANCE_CONTRAST, m_contrast))
+            return false;
 
-        setTransformMode(mapToTransformMode(m_rotationDegree));
+        if (m_rotationDegree) {
+            VppTransform transform = mapToTransformMode(m_rotationDegree);
+            if (VPP_TRANSFORM_NONE == transform) {
+                ERROR("the value(%d) of \"-r\" should be one of those values(90, 180 or 270)", m_rotationDegree);
+                return false;
+            }
+            else if (!setTransformMode(transform))
+                return false;
+        }
 #endif
         return true;
     }
     bool setClrBalance(VppColorBalanceMode mode, int32_t level)
     {
         VPPColorBalanceParameter clrBalanceParam;
-        int32_t tmp = level;
 
-        if (level < COLORBALANCE_LEVEL_NONE) {
-            level = COLORBALANCE_LEVEL_NONE;
-        }
-        if (level > COLORBALANCE_LEVEL_MAX) {
-            level = COLORBALANCE_LEVEL_MAX;
-        }
-        if (tmp != level) {
-            WARNING("contrast level should in range [%d, %d] or %d for none",
-                COLORBALANCE_LEVEL_MIN, COLORBALANCE_LEVEL_MAX, COLORBALANCE_LEVEL_NONE);
+        if ((level < COLORBALANCE_LEVEL_NONE) || (level > COLORBALANCE_LEVEL_MAX)) {
+            switch (mode) {
+            case COLORBALANCE_HUE:
+                ERROR("--hue: ");
+                break;
+            case COLORBALANCE_SATURATION:
+                ERROR("--sat: ");
+                break;
+            case COLORBALANCE_BRIGHTNESS:
+                ERROR("--br: ");
+                break;
+            case COLORBALANCE_CONTRAST:
+                ERROR("--con: ");
+                break;
+            default:
+                break;
+            }
+            ERROR("level %d should in range [%d, %d] or %d for none",
+                level, COLORBALANCE_LEVEL_MIN, COLORBALANCE_LEVEL_MAX, COLORBALANCE_LEVEL_NONE);
+            return false;
         }
 
         memset(&clrBalanceParam, 0, sizeof(clrBalanceParam));
@@ -356,10 +378,10 @@ void usage()
     printf("       -r <level> optional, rotation angle: 0, 90, 180, 270; default 0\n");
     printf("       --dn <level> optional, denoise level\n");
     printf("       --di <mode>, optional, deinterlace mode, only support bob\n");
-    printf("       --hue <level>, optional, hue level, range [0, 100] or -1, -1: delete this filter\n");
-    printf("       --sat <level>, optional, saturation level, range [0, 100] or -1, -1: delete this filter\n");
-    printf("       --br <level>, optional, brightness level, range [0, 100] or -1, -1: delete this filter\n");
-    printf("       --con <level>, optional, constrast level, range [0, 100] or -1, -1: delete this filter\n");
+    printf("       --hue <level>, optional, hue level, range [0, 100] or -1, -1: delete this filter; default 50\n");
+    printf("       --sat <level>, optional, saturation level, range [0, 100] or -1, -1: delete this filter; default 10\n");
+    printf("       --br <level>, optional, brightness level, range [0, 100] or -1, -1: delete this filter; default 50\n");
+    printf("       --con <level>, optional, constrast level, range [0, 100] or -1, -1: delete this filter; default 10\n");
 }
 
 int main(int argc, char** argv)
