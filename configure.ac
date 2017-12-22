@@ -148,10 +148,6 @@ fi
 AM_CONDITIONAL(ENABLE_AVFORMAT,
     [test "x$enable_avformat" = "xyes"])
 
-AC_ARG_ENABLE(md5,
-    [AC_HELP_STRING([--enable-md5], [enable generate md5 by per frame@<:@default=yes@:>@])],
-    [], [enable_md5="yes"])
-
 dnl encoder getmv
 AC_ARG_ENABLE(getmv,
     [AC_HELP_STRING([--enable-getmv],
@@ -247,17 +243,15 @@ if test "$enable_avformat" = "yes"; then
     PKG_CHECK_MODULES(LIBAVFORMAT,  [libavformat libavcodec libavutil])
 fi
 
-#check openssl
-if test "$enable_md5" = "yes"; then
-    PKG_CHECK_MODULES([LIBBSD], [libbsd],
-        [AC_DEFINE([__ENABLE_MD5__], [1],
-            [Defined to 1 if MD5 API and --enable-md5[default] are enabled])],
-        [])
+
+PKG_CHECK_MODULES([LIBBSD], [libbsd], [have_bsd="yes"], [have_bsd="no"])
+AM_CONDITIONAL([HAVE_LIBBSD], [test "x$have_bsd" = xyes])
+if test "$have_bsd" = "yes"; then
+   AC_DEFINE(HAVE_LIBBSD, 1, [Define if libbsd is available])
 fi
 
-PKG_CHECK_MODULES([LIBYAMI], [libyami >= 0.5.2])
 
-AM_CONDITIONAL(ENABLE_MD5, test "x$enable_md5" = "xyes")
+PKG_CHECK_MODULES([LIBYAMI], [libyami >= 0.5.2])
 
 # Checks for library functions.
 AC_FUNC_MALLOC
