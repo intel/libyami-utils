@@ -36,7 +36,7 @@ EncodeInput * EncodeInput::create(const char* inputFileName, uint32_t fourcc, in
 {
     EncodeInput *input = NULL;
     if (!inputFileName) {
-#if ANDROID
+#if 0
         input = new EncodeInputSurface();
 #else
         return NULL;
