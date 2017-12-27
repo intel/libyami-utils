@@ -25,7 +25,10 @@
 #include <vector>
 #include <fstream>
 #include <iostream>
-#if ANDROID
+
+//android headers change so faster, we can't catch up
+//so disalbe surface input temporarily, if someone needed, we will bring it back.
+#if 0
 #include <gui/Surface.h>
 #include <android/native_window.h>
 #include <system/window.h>
@@ -109,7 +112,7 @@ private:
 
 };
 
-#if ANDROID
+#if 0
 #define SURFACE_BUFFER_COUNT 5
 class EncodeInputSurface : public EncodeInput {
 public:
