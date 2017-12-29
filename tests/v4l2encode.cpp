@@ -151,7 +151,7 @@ bool writeOneOutputFrame(uint8_t* data, uint32_t dataSize)
     static std::ofstream m_ofs;
 
     if(!m_ofs.is_open()) {
-        m_ofs.open((outputFileName, std::ofstream::out | std::ofstream::trunc);
+        m_ofs.open(outputFileName, std::ofstream::out | std::ofstream::trunc);
         if (!m_ofs) {
             fprintf(stderr, "fail to open file: %s\n", outputFileName);
             return false;
