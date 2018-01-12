@@ -34,7 +34,7 @@ DecodeInputAvFormat::DecodeInputAvFormat()
     av_init_packet(&m_packet);
 }
 
-bool DecodeInputAvFormat::initInput(const char* fileName)
+bool DecodeInputAvFormat::initInput(const char* fileName, size_t readSize)
 {
     uint16_t width = 0, height = 0;
     int ret = avformat_open_input(&m_format, fileName, NULL, NULL);

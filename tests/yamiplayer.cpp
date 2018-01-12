@@ -56,8 +56,12 @@ typedef struct YamiPlayerParameter {
     string inputFile;
     string outputFile;
     uint32_t outputFrameNumber;
+    uint16_t surfaceNumber;
+    uint16_t extraSurfaceNumber;
+    uint32_t readSize;
     uint16_t outputMode;
     bool getFirstFrame;
+    bool enableLowLatency;
 } YamiPlayerParameter;
 
 void printHelp(const char* app)
@@ -65,6 +69,10 @@ void printHelp(const char* app)
     CPPPRINT(app << " -i input.264 -m 0");
     CPPPRINT("   -i media file to decode");
     CPPPRINT("   -o specify the name of dumped output file");
+    CPPPRINT("   -r read size, only for 264, default 120539");
+    CPPPRINT("   -s surface number for decoding, mostly for vp9 decoding in fast-boot mode.");
+    CPPPRINT("   -e extra surface number for decoding, mostly for avc decoding in fast-boot mode.");
+    CPPPRINT("   -l low latency");
     CPPPRINT("   -g just to get surface of the first decoded frame");
     CPPPRINT("   -n specify how many frames to be decoded");
     CPPPRINT("   -m render mode, default 0");
@@ -73,15 +81,40 @@ void printHelp(const char* app)
     CPPPRINT("      2: render to wayland window [*]");
 }
 
+void clearParameter(YamiPlayerParameter* parameters)
+{
+    if (parameters != NULL) {
+        parameters->outputFrameNumber = 0;
+        parameters->surfaceNumber = 0;
+        parameters->extraSurfaceNumber = 0;
+        parameters->readSize = 0;
+        parameters->outputMode = 0;
+        parameters->getFirstFrame = 0;
+        parameters->enableLowLatency = 0;
+    }
+}
+
 bool processCmdLine(int argc, char** argv, YamiPlayerParameter* parameters)
 {
     char opt;
-    while ((opt = getopt(argc, argv, "h?gi:o:n:m:")) != -1) {
+    while ((opt = getopt(argc, argv, "h?r:s:e:lgi:o:n:m:")) != -1) {
         switch (opt) {
         case 'h':
         case '?':
             printHelp(argv[0]);
             return false;
+        case 'r':
+            parameters->readSize = atoi(optarg);
+            break;
+        case 's':
+            parameters->surfaceNumber = atoi(optarg);
+            break;
+        case 'e':
+            parameters->extraSurfaceNumber = atoi(optarg);
+            break;
+        case 'l':
+            parameters->enableLowLatency = true;
+            break;
         case 'g':
             parameters->getFirstFrame = true;
             break;
@@ -643,10 +676,14 @@ public:
     uint64_t getFrameNum() { return m_frameNum; }
     bool init(int argc, char** argv)
     {
+        clearParameter(&m_parameters);
         if (!processCmdLine(argc, argv, &m_parameters))
             return false;
 
-        m_input.reset(DecodeInput::create(m_parameters.inputFile.c_str()));
+        if (m_parameters.readSize)
+            m_input.reset(DecodeInput::create(m_parameters.inputFile.c_str(), m_parameters.readSize));
+        else
+            m_input.reset(DecodeInput::create(m_parameters.inputFile.c_str()));
         if (!m_input) {
             ERROR("failed to open %s", m_parameters.inputFile.c_str());
             return false;
@@ -685,6 +722,20 @@ public:
         if (codecData.size()) {
             configBuffer.data = (uint8_t*)codecData.data();
             configBuffer.size = codecData.size();
+        }
+
+        configBuffer.enableLowLatency = m_parameters.enableLowLatency;
+        if (m_parameters.surfaceNumber) {
+            //How many surfaces for decoding;
+            //VP9 supporting;
+            //AVC unsupporting;
+            configBuffer.flag |= HAS_SURFACE_NUMBER;
+            configBuffer.surfaceNumber = m_parameters.surfaceNumber;
+        }
+        if (m_parameters.extraSurfaceNumber) {
+            //How many extra surfaces for decoding;
+            //VP9, AVC supporting;
+            configBuffer.extraSurfaceNum = m_parameters.extraSurfaceNumber;
         }
 
         Decode_Status status = m_decoder->start(&configBuffer);

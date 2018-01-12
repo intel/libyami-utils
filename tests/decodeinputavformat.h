@@ -42,7 +42,8 @@ public:
     virtual const string& getCodecData();
 
 protected:
-    virtual bool initInput(const char* fileName);
+    virtual bool initInput(const char* fileName, size_t readSize = 0);
+
 private:
     AVFormatContext* m_format;
     int m_videoId;
