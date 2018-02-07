@@ -29,7 +29,9 @@
 DecodeInputAvFormat::DecodeInputAvFormat()
 :m_format(NULL),m_videoId(-1), m_codecId(AV_CODEC_ID_NONE), m_isEos(true)
 {
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58, 9, 100)
     av_register_all();
+#endif
 
     av_init_packet(&m_packet);
 }
