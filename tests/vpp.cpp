@@ -99,6 +99,7 @@ public:
         , m_saturation(COLORBALANCE_LEVEL_NONE)
         , m_brightness(COLORBALANCE_LEVEL_NONE)
         , m_contrast(COLORBALANCE_LEVEL_NONE)
+        , m_rotationDegree(0)
 #endif
     {
     }
@@ -170,7 +171,7 @@ private:
             return false;
         }
 
-        while ((opt = getopt_long_only(argc, argv, "s:h:", long_opts, &option_index)) != -1) {
+        while ((opt = getopt_long_only(argc, argv, "s:h:r:", long_opts, &option_index)) != -1) {
             switch (opt) {
             case 'h':
             case '?':
@@ -178,6 +179,9 @@ private:
                 return false;
             case 's':
                 m_sharpening = atoi(optarg);
+                break;
+            case 'r':
+                m_rotationDegree = atoi(optarg);
                 break;
             case 0:
                 switch (option_index) {
@@ -267,27 +271,51 @@ private:
             }
         }
 
-        setClrBalance(COLORBALANCE_HUE, m_hue);
-        setClrBalance(COLORBALANCE_SATURATION, m_saturation);
-        setClrBalance(COLORBALANCE_BRIGHTNESS, m_brightness);
-        setClrBalance(COLORBALANCE_CONTRAST, m_contrast);
+        if (!setClrBalance(COLORBALANCE_HUE, m_hue))
+            return false;
+        if (!setClrBalance(COLORBALANCE_SATURATION, m_saturation))
+            return false;
+        if (!setClrBalance(COLORBALANCE_BRIGHTNESS, m_brightness))
+            return false;
+        if (!setClrBalance(COLORBALANCE_CONTRAST, m_contrast))
+            return false;
+
+        if (m_rotationDegree) {
+            VppTransform transform = mapToTransformMode(m_rotationDegree);
+            if (VPP_TRANSFORM_NONE == transform) {
+                ERROR("the value(%d) of \"-r\" should be one of those values(90, 180 or 270)", m_rotationDegree);
+                return false;
+            }
+            else if (!setTransformMode(transform))
+                return false;
+        }
 #endif
         return true;
     }
     bool setClrBalance(VppColorBalanceMode mode, int32_t level)
     {
         VPPColorBalanceParameter clrBalanceParam;
-        int32_t tmp = level;
 
-        if (level < COLORBALANCE_LEVEL_NONE) {
-            level = COLORBALANCE_LEVEL_NONE;
-        }
-        if (level > COLORBALANCE_LEVEL_MAX) {
-            level = COLORBALANCE_LEVEL_MAX;
-        }
-        if (tmp != level) {
-            WARNING("contrast level should in range [%d, %d] or %d for none",
-                COLORBALANCE_LEVEL_MIN, COLORBALANCE_LEVEL_MAX, COLORBALANCE_LEVEL_NONE);
+        if ((level < COLORBALANCE_LEVEL_NONE) || (level > COLORBALANCE_LEVEL_MAX)) {
+            switch (mode) {
+            case COLORBALANCE_HUE:
+                ERROR("--hue: ");
+                break;
+            case COLORBALANCE_SATURATION:
+                ERROR("--sat: ");
+                break;
+            case COLORBALANCE_BRIGHTNESS:
+                ERROR("--br: ");
+                break;
+            case COLORBALANCE_CONTRAST:
+                ERROR("--con: ");
+                break;
+            default:
+                break;
+            }
+            ERROR("level %d should in range [%d, %d] or %d for none",
+                level, COLORBALANCE_LEVEL_MIN, COLORBALANCE_LEVEL_MAX, COLORBALANCE_LEVEL_NONE);
+            return false;
         }
 
         memset(&clrBalanceParam, 0, sizeof(clrBalanceParam));
@@ -298,6 +326,30 @@ private:
             return false;
         }
         return true;
+    }
+    bool setTransformMode(VppTransform transform)
+    {
+        VppParamTransform paramTransform;
+        memset(&paramTransform, 0, sizeof(paramTransform));
+        paramTransform.size = sizeof(paramTransform);
+        paramTransform.transform = transform;
+        if (m_vpp->setParameters(VppParamTypeTransform, &paramTransform) != YAMI_SUCCESS) {
+            return false;
+        }
+        return true;
+    }
+    VppTransform mapToTransformMode(uint32_t degree)
+    {
+        switch (degree) {
+        case 90:
+            return VPP_TRANSFORM_ROT_90;
+        case 180:
+            return VPP_TRANSFORM_ROT_180;
+        case 270:
+            return VPP_TRANSFORM_ROT_270;
+        default:
+            return VPP_TRANSFORM_NONE;
+        }
     }
     SharedPtr<VADisplay> m_display;
     SharedPtr<VppInput> m_input;
@@ -313,6 +365,7 @@ private:
     int32_t m_saturation;
     int32_t m_brightness;
     int32_t m_contrast;
+    int32_t m_rotationDegree;
 };
 
 void usage()
@@ -322,12 +375,13 @@ void usage()
     printf("current supported format are i420, yv12, nv12\n");
     printf("usage: yamivpp <option> input_1920x1080.i420 output_320x240.yv12\n");
     printf("       -s <level> optional, sharpening level\n");
+    printf("       -r <level> optional, rotation angle: 0, 90, 180, 270; default 0\n");
     printf("       --dn <level> optional, denoise level\n");
     printf("       --di <mode>, optional, deinterlace mode, only support bob\n");
-    printf("       --hue <level>, optional, hue level, range [0, 100] or -1, -1: delete this filter\n");
-    printf("       --sat <level>, optional, saturation level, range [0, 100] or -1, -1: delete this filter\n");
-    printf("       --br <level>, optional, brightness level, range [0, 100] or -1, -1: delete this filter\n");
-    printf("       --con <level>, optional, constrast level, range [0, 100] or -1, -1: delete this filter\n");
+    printf("       --hue <level>, optional, hue level, range [0, 100] or -1, -1: delete this filter; default 50\n");
+    printf("       --sat <level>, optional, saturation level, range [0, 100] or -1, -1: delete this filter; default 10\n");
+    printf("       --br <level>, optional, brightness level, range [0, 100] or -1, -1: delete this filter; default 50\n");
+    printf("       --con <level>, optional, constrast level, range [0, 100] or -1, -1: delete this filter; default 10\n");
 }
 
 int main(int argc, char** argv)
