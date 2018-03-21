@@ -57,7 +57,10 @@ def getYuvFile(src):
     return files[0]
 
 def getFileInfo(file):
-    m=re.search("(?P<width>\d+)x(?P<height>\d+)", file);
+    posEnd = file.rfind(".")
+    posStart = file.rfind("_")
+    resolution = file[posStart:posEnd]
+    m=re.search("(?P<width>\d+)x(?P<height>\d+)", resolution);
     w = int(m.group("width"))
     h = int(m.group("height"))
     if w == 0 or h == 0:
@@ -88,6 +91,7 @@ def verify(yuv, f, log):
 
 def test(f, log = False):
     if not testYami(f, log):
+        print(f + " failed")
         return False
 
     yuv = getYuvFile(f);
