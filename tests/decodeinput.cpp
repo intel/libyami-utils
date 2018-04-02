@@ -32,11 +32,11 @@ using namespace YamiMediaCodec;
 
 class MyDecodeInput : public DecodeInput{
 public:
-    static const size_t MaxNaluSize = 1024*1024*4; // assume max nalu size is 4M
-    static const size_t CacheBufferSize = 8 * MaxNaluSize;
+    static size_t MaxNaluSize;
+    static size_t CacheBufferSize;
     MyDecodeInput();
     virtual ~MyDecodeInput();
-    bool initInput(const char* fileName);
+    bool initInput(const char* fileName, size_t readSize = 0);
     virtual bool isEOS() {return m_parseToEOS;}
     virtual bool init() = 0;
     virtual const string& getCodecData();
@@ -108,7 +108,7 @@ DecodeInput::DecodeInput()
 {
 }
 
-DecodeInput* DecodeInput::create(const char* fileName)
+DecodeInput* DecodeInput::create(const char* fileName, size_t readSize)
 {
     DecodeInput* input = NULL;
     if(fileName==NULL)
@@ -147,7 +147,7 @@ DecodeInput* DecodeInput::create(const char* fileName)
 #endif
         }
 
-    if(!input->initInput(fileName)) {
+        if (!input->initInput(fileName, readSize)) {
         delete input;
         return NULL;
     }
@@ -159,6 +159,9 @@ void DecodeInput::setResolution(const uint16_t width, const uint16_t height)
   m_width = width;
   m_height = height;
 }
+
+size_t MyDecodeInput::MaxNaluSize = 1024 * 1024 * 4; // assume max nalu size is 4M
+size_t MyDecodeInput::CacheBufferSize = 8 * MaxNaluSize;
 
 MyDecodeInput::MyDecodeInput()
     : m_ifs()
@@ -173,7 +176,7 @@ MyDecodeInput::~MyDecodeInput()
     free(m_buffer);
 }
 
-bool MyDecodeInput::initInput(const char* fileName)
+bool MyDecodeInput::initInput(const char* fileName, size_t readSize)
 {
     m_ifs.open(fileName);
     if(!m_ifs) {
@@ -181,6 +184,10 @@ bool MyDecodeInput::initInput(const char* fileName)
         return false;
     }
 
+    if (readSize) {
+        CacheBufferSize = readSize;
+        MaxNaluSize = CacheBufferSize / 2;
+    }
     m_buffer = static_cast<uint8_t*>(malloc(CacheBufferSize));
     return init();
 }
