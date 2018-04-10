@@ -40,21 +40,21 @@ before_install:
 
   
   
-  - git clone https://github.com/01org/libva.git
+  - git clone https://github.com/intel/libva.git
   - (cd libva && ./autogen.sh && ./configure  && sudo make install)
-  - git clone https://github.com/01org/libyami.git
+  - git clone https://github.com/intel/libyami.git
   - (cd libyami && ./autogen.sh  && make -j8 && sudo make install)
 
 
  
 install:
-  - git clone https://github.com/01org/libyami-utils.git
+  - git clone https://github.com/intel/libyami-utils.git
   - (cd libyami-utils && ./autogen.sh  && make -j8 && sudo make install)
 
 addons:
   coverity_scan:
     project:
-      name: "01org/libyami-utils"
+      name: "intel/libyami-utils"
       description: "Build submitted via Travis CI"
     notification_email: 531669721@sjtu.edu.cn
     build_command_prepend: "./autogen.sh; ./configure --prefix=/opt/yami"
