@@ -76,6 +76,11 @@ Bugs can be reported in libyami-utils issue list at:
   <https://github.com/01org/libyami-utils/issues/new>
 
 
+Reporting a security issue
+--------------------------
+Please mail to secure-opensource@intel.com directly for security issue
+
+
 FAQ
 ---
 https://github.com/01org/libyami/wiki/FAQ
