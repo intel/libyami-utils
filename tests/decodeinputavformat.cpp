@@ -144,6 +144,7 @@ bool DecodeInputAvFormat::getNextDecodeUnit(VideoDecodeBuffer &inputBuffer)
             inputBuffer.data = m_packet.data;
             inputBuffer.size = m_packet.size;
             inputBuffer.timeStamp = m_packet.dts;
+            inputBuffer.flag = VIDEO_DECODE_BUFFER_FLAG_FRAME_END;
             return true;
         }
     }
