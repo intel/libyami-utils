@@ -54,7 +54,7 @@ endif
 if ENABLE_WAYLAND
 YAMI_COMMON_LIBS += $(LIBVA_WAYLAND_LIBS)
 endif
-if ENABLE_TESTS_GLES
+if ENABLE_EGL
 YAMI_DECODE_LIBS += $(LIBEGL_LIBS) $(LIBGLES2_LIBS)
 endif
 
@@ -96,7 +96,7 @@ YAMI_VPP_CFLAGS = \
 yamidecode_LDADD    = $(YAMI_VPP_LIBS)
 yamidecode_LDFLAGS  = $(YAMI_VPP_LDFLAGS)
 yamidecode_SOURCES  = decode.cpp decodehelp.cpp $(DECODE_INPUT_SOURCES) decodeoutput.cpp vppinputoutput.cpp vppinputdecode.cpp vppoutputencode.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp vppinputdecodecapi.cpp
-if ENABLE_TESTS_GLES
+if ENABLE_EGL
 yamidecode_SOURCES += ../egl/egl_util.c ./egl/gles2_help.c
 endif
 
@@ -108,7 +108,7 @@ v4l2decode_LDADD   = $(V4L2_DECODE_LIBS)
 v4l2decode_LDFLAGS = $(V4L2_DECODE_LDFLAGS)
 v4l2decode_SOURCES = v4l2decode.cpp V4L2Renderer.cpp V4L2Device.cpp decodehelp.cpp $(DECODE_INPUT_SOURCES)
 
-if ENABLE_TESTS_GLES
+if ENABLE_EGL
 v4l2decode_SOURCES += ./egl/gles2_help.c
 endif
 v4l2decode_LDADD += -ldl
