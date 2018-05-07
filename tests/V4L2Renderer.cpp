@@ -433,7 +433,7 @@ private:
     uint32_t m_height;
 };
 
-#ifdef __ENABLE_TESTS_GLES__ //our egl application need x11 for output
+#ifdef __ENABLE_EGL__ //our egl application need x11 for output
 
 #include "./egl/gles2_help.h"
 
@@ -566,7 +566,7 @@ SharedPtr<V4L2Renderer> V4L2Renderer::create(const SharedPtr<V4L2Device>& device
 #ifdef __ENABLE_X11__
     if (memoryType == VIDEO_DATA_MEMORY_TYPE_EXTERNAL_DMA_BUF)
         renderer.reset(new ExternalDmaBufRenderer(device, memoryType));
-#ifdef __ENABLE_TESTS_GLES__
+#ifdef __ENABLE_EGL__
     if (memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME || memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF)
         renderer.reset(new EglRenderer(device, memoryType));
 #endif
