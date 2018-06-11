@@ -170,8 +170,19 @@ AC_ARG_ENABLE(oclblender,
 AM_CONDITIONAL(BUILD_OCL_BLENDER,
     [test "x$enable_oclblender" = "xyes"])
 
-AC_SUBST([AM_CFLAGS], ["-g -O2 -Wall -Wno-unused-function -Wno-cpp -Werror"])
-AC_SUBST([AM_CXXFLAGS], ["-g -O2 -Wall -Wno-unused-function -Wno-cpp -Wno-missing-braces -Werror"])
+GCC_VERSION_major=$(gcc -dumpversion |awk -F "." '{print $1}')
+GCC_VERSION_minor=$(gcc -dumpversion |awk -F "." '{print $2}')
+GCC_VERSION=$(( $GCC_VERSION_major*10 + $GCC_VERSION_minor ))
+
+if test `echo "$GCC_VERSION >= 49" |bc` = 1; then
+    AC_SUBST([AM_CFLAGS], ["-g -O2 -D_FORTIFY_SOURCE=2 -fPIE -fPIC -fstack-protector-strong -Wall -Wno-unused-function -Wno-cpp -Werror"])
+    AC_SUBST([AM_CXXFLAGS], ["-g -O2 -D_FORTIFY_SOURCE=2 -fPIE -fPIC -fstack-protector-strong -Wall -Wno-unused-function -Wno-cpp -Wno-missing-braces -Werror"])
+else
+    AC_SUBST([AM_CFLAGS], ["-g -O2 -D_FORTIFY_SOURCE=2 -fPIE -fPIC -fstack-protector -Wall -Wno-unused-function -Wno-cpp -Werror"])
+    AC_SUBST([AM_CXXFLAGS], ["-g -O2 -D_FORTIFY_SOURCE=2 -fPIE -fPIC -fstack-protector -Wall -Wno-unused-function -Wno-cpp -Wno-missing-braces -Werror"])
+fi
+
+AC_SUBST([AM_LDFLAGS], ["-z noexecstack -z relro -z now -pie"])
 
 # Checks for programs.
 AC_DISABLE_STATIC
