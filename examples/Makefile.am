@@ -18,7 +18,7 @@ extra_includes = \
         -I$(top_srcdir) \
         $(NULL)
 
-AM_CFLAGS = \
+YAMI_COMMON_CFLAGS = \
 	-I../tests \
 	$(LIBYAMI_CFLAGS) \
 	$(LIBVA_CFLAGS) \
@@ -31,7 +31,7 @@ DECODE_INPUT_SOURCES = \
 
 if ENABLE_AVFORMAT
 DECODE_INPUT_SOURCES += ../tests/decodeinputavformat.cpp
-AM_CFLAGS += -D__STDC_CONSTANT_MACROS \
+YAMI_COMMON_CFLAGS += -D__STDC_CONSTANT_MACROS \
 	$(LIBAVFORMAT_CFLAGS)
 endif
 
@@ -45,7 +45,6 @@ VPP_INPUT_SOURCES = \
 	../tests/encodeInputCamera.cpp \
 	$(NULL)
 
-AM_CPPFLAGS = $(AM_CFLAGS)
 YAMI_COMMON_LIBS = \
 	$(LIBVA_LIBS) \
 	$(LIBVA_DRM_LIBS) \
@@ -83,18 +82,17 @@ VPP_INPUT_CFLAGS = \
 
 if ENABLE_X11
 simpleplayer_LDADD = $(YAMI_DECODE_LIBS)
-simpleplayer_LDFLAGS = $(LIBYAMI_CFLAGS)
+simpleplayer_CPPFLAGS = $(YAMI_COMMON_CFLAGS) $(AM_CPPFLAGS)
 simpleplayer_SOURCES = simpleplayer.cpp $(DECODE_INPUT_SOURCES)
 
 blend_LDADD = $(VPP_INPUT_LIBS) -lpthread
-blend_LDFLAGS = $(VPP_INPUT_LDFLAGS) $(LIBYAMI_CFLAGS)
+blend_CPPFLAGS = $(YAMI_COMMON_CFLAGS) $(AM_CPPFLAGS)
 blend_SOURCES	= blend.cpp $(VPP_INPUT_SOURCES)
 endif
 
 if ENABLE_DMABUF
 grid_LDADD = $(VPP_INPUT_LIBS) $(LIBDRM_LIBS) -lpthread
-grid_CPPFLAGS = $(LIBYAMI_CFLAGS) $(LIBDRM_CFLAGS) $(AM_CPPFLAGS)
-grid_LDFLAGS = $(VPP_INPUT_LDFLAGS) $(LIBYAMI_CFLAGS) $(LIBDRM_CFLAGS)
+grid_CPPFLAGS = $(LIBDRM_CFLAGS) $(YAMI_COMMON_CFLAGS) $(AM_CPPFLAGS)
 grid_SOURCES = grid.cpp $(VPP_INPUT_SOURCES)
 endif
 
