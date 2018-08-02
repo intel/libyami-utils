@@ -59,6 +59,12 @@ bool checkDrmRet(int ret,const char* msg)
     }
     return true;
 }
+
+static uint32_t getDrmFormat(bool tenBits)
+{
+    return tenBits ? DRM_FORMAT_XBGR2101010 : DRM_FORMAT_XBGR8888;
+}
+
 //this is an onscreen RGB Surface.
 //drm function uses getFbHandle
 //yami uses SharedPtr<VideoFrame>
@@ -66,7 +72,7 @@ bool checkDrmRet(int ret,const char* msg)
 class DrmFrame : public VideoFrame
 {
 public:
-    DrmFrame(VADisplay, int fd, uint32_t width, uint32_t height);
+    DrmFrame(VADisplay, int fd, uint32_t width, uint32_t height, bool tenBits = false);
     ~DrmFrame();
     bool init();
     uint32_t getFbHandle();
@@ -80,19 +86,26 @@ private:
     int m_fd;
     uint32_t m_width;
     uint32_t m_height;
-    int m_bo;
+    uint32_t m_bo;
     uint32_t m_handle;
     uint32_t m_pitch;
+    bool m_10bits;
     static const uint32_t BPP = 32;
 };
 
-DrmFrame::DrmFrame(VADisplay display, int fd, uint32_t width, uint32_t height)
-    :m_display(display), m_fd(fd), m_width(width),m_height(height),m_bo(-1), m_handle(-1)
+DrmFrame::DrmFrame(VADisplay display, int fd, uint32_t width, uint32_t height, bool tenBits)
+    : m_display(display)
+    , m_fd(fd)
+    , m_width(width)
+    , m_height(height)
+    , m_bo(-1)
+    , m_handle(-1)
+    , m_10bits(tenBits)
 {
     //dirty but handy
     VideoFrame* frame = static_cast<VideoFrame*>(this);
     memset(frame, 0, sizeof(VideoFrame));
-    frame->fourcc = YAMI_FOURCC_RGBX;
+    frame->fourcc = tenBits ? YAMI_FOURCC_RGBA : YAMI_FOURCC_RGBX;
     frame->surface = static_cast<intptr_t>(VA_INVALID_ID);
 }
 
@@ -113,9 +126,12 @@ bool DrmFrame::createBo()
 
 bool DrmFrame::addToFb()
 {
-    int ret = drmModeAddFB(m_fd, m_width, m_height, 24,
-            BPP, m_pitch, m_bo, &m_handle);
-    return checkDrmRet(ret, "drmModeAddFB");
+    uint32_t offset = 0;
+    uint32_t format = getDrmFormat(m_10bits);
+    int ret = drmModeAddFB2(m_fd, m_width, m_height,
+                format, (uint32_t *)&m_bo, (uint32_t *)&m_pitch, &offset,
+                &m_handle, 0);
+    return checkDrmRet(ret, "drmModeAddFB2");
 }
 
 //bind m_bo to VaSurface.
@@ -134,7 +150,7 @@ bool DrmFrame::bindToVaSurface()
     VASurfaceAttribExternalBuffers external;
     unsigned long handle = (unsigned long)arg.name;
     memset(&external, 0, sizeof(external));
-    external.pixel_format = VA_FOURCC_BGRX;
+    external.pixel_format = fourcc;
     external.width = m_width;
     external.height = m_height;
     external.data_size = m_width * m_height * BPP / 8;
@@ -155,8 +171,9 @@ bool DrmFrame::bindToVaSurface()
     attribs[1].value.value.p = &external;
 
     VASurfaceID id;
-    VAStatus vaStatus = vaCreateSurfaces(m_display, VA_RT_FORMAT_RGB32, m_width, m_height,
-                                           &id, 1,attribs, N_ELEMENTS(attribs));
+    uint32_t rtFormat = m_10bits ? VA_RT_FORMAT_RGB32_10 : VA_RT_FORMAT_RGB32;
+    VAStatus vaStatus = vaCreateSurfaces(m_display, rtFormat, m_width, m_height,
+        &id, 1, attribs, N_ELEMENTS(attribs));
     if (!checkVaapiStatus(vaStatus, "vaCreateSurfaces"))
         return false;
     this->surface = static_cast<intptr_t>(id);
@@ -185,7 +202,7 @@ DrmFrame::~DrmFrame()
         ret = drmModeRmFB(m_fd, m_handle);
         checkDrmRet(ret, "drmModeRmFB");
     }
-    if (m_bo != -1) {
+    if (m_bo != (uint32_t)-1) {
         drm_mode_destroy_dumb arg;
         memset(&arg, 0, sizeof(arg));
         arg.handle = m_bo;
@@ -249,8 +266,7 @@ public:
     uint32_t getWidth();
     uint32_t getHeight();
 
-
-    DrmRenderer(VADisplay, int fd, int displayIdx);
+    DrmRenderer(VADisplay, int fd, int displayIdx, bool tenBits);
     ~DrmRenderer();
 private:
     bool createFrames(uint32_t width, uint32_t height, int size);
@@ -278,6 +294,7 @@ private:
     SharedPtr<DrmFrame> m_current;
     SharedPtr<Flipper>    m_flipper;
     int m_frameCount;
+    bool m_10bits;
 };
 
 DrmRenderer::Flipper::Flipper(
@@ -364,15 +381,20 @@ void DrmRenderer::Flipper::loop()
     }
 }
 
-DrmRenderer::DrmRenderer(VADisplay display, int fd, int displayIdx)
-    :m_display(display), m_fd(fd), m_displayIdx(displayIdx), m_cond(m_lock), m_frameCount(0)
+DrmRenderer::DrmRenderer(VADisplay display, int fd, int displayIdx, bool tenBits)
+    : m_display(display)
+    , m_fd(fd)
+    , m_displayIdx(displayIdx)
+    , m_cond(m_lock)
+    , m_frameCount(0)
+    , m_10bits(tenBits)
 {
 }
 
 bool DrmRenderer::createFrames(uint32_t width, uint32_t height, int size)
 {
     for (int i = 0; i < size; i++) {
-        SharedPtr<DrmFrame> frame(new DrmFrame(m_display, m_fd, width, height));
+        SharedPtr<DrmFrame> frame(new DrmFrame(m_display, m_fd, width, height, m_10bits));
         if (!frame->init())
             return false;
         m_backs.push_back(frame);
@@ -430,7 +452,7 @@ bool DrmRenderer::getCrtc(drmModeRes *resource)
         }
         drmModeFreeEncoder(encoder);
     } else {
-        ERROR("connect get encoder for id %d", m_encoderID);
+        ERROR("can't get encoder for id %d", m_encoderID);
     }
     return ret;
 }
@@ -441,12 +463,13 @@ bool DrmRenderer::getPlane()
     if (!planes) {
         return false;
     }
+    uint32_t target = getDrmFormat(m_10bits);
     for (uint32_t i = 0; i < planes->count_planes; i++) {
         drmModePlanePtr plane = drmModeGetPlane(m_fd, planes->planes[i]);
         if (plane) {
             if (plane->possible_crtcs & (1 << m_crtcIndex)) {
                 for (uint32_t j = 0; j < plane->count_formats; j++) {
-                    if (plane->formats[j] == DRM_FORMAT_XRGB8888) {
+                    if (plane->formats[j] == target) {
                         m_planeID = plane->plane_id;
                         drmModeFreePlane(plane);
                         drmModeFreePlaneResources(planes);
@@ -489,6 +512,8 @@ bool DrmRenderer::initDrm()
 {
     bool ret = false;
 
+    if (!checkDrmRet(drmSetClientCap(m_fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1), "drmSetClientCap"))
+        return false;
     drmModeRes *resource = drmModeGetResources(m_fd);
     if (resource) {
         if (getConnector(resource) && getCrtc(resource) && getPlane()) {
@@ -505,7 +530,7 @@ bool DrmRenderer::init()
         return false;
     if (!createFrames(m_mode.hdisplay, m_mode.vdisplay, 5) || !setPlane() || !createFlipper())
         return false;
-    ERROR("%dx%d@%d", m_mode.hdisplay, m_mode.vdisplay, m_mode.vrefresh);
+    ERROR("display %d: %dx%d@%d", m_displayIdx, m_mode.hdisplay, m_mode.vdisplay, m_mode.vrefresh);
     return true;
 }
 
@@ -576,6 +601,7 @@ void usage(const char* app) {
         printf("   -g, <grid command line> create other grid instance  \n");
         printf("       example: grid a.mp4 -g \"b.mp4 -d 2\"\n");
         printf("       it will render a.mp4 in first display and b.mp4 in second\n");
+        printf("   -t create 10 bits RGB output, you need 10 bits display for this\n");
 }
 
 class Grid
@@ -633,10 +659,20 @@ public:
         }
         return true;
     }
-    Grid(int fd, const SharedPtr<NativeDisplay>& nativeDisplay):m_fd(fd), m_nativeDisplay(nativeDisplay),
-        m_vaDisplay((VADisplay)nativeDisplay->handle),
-        m_width(0), m_height(0), m_col(0), m_row(0),
-        m_displayIdx(1), m_singleThread(false), m_vppThread(-1){}
+    Grid(int fd, const SharedPtr<NativeDisplay>& nativeDisplay)
+        : m_fd(fd)
+        , m_nativeDisplay(nativeDisplay)
+        , m_vaDisplay((VADisplay)nativeDisplay->handle)
+        , m_width(0)
+        , m_height(0)
+        , m_col(0)
+        , m_row(0)
+        , m_displayIdx(1)
+        , m_singleThread(false)
+        , m_vppThread(-1)
+        , m_10bits(false)
+    {
+    }
 
     ~Grid()
     {
@@ -689,7 +725,7 @@ private:
             return false;
         }
 
-        SharedPtr<DrmRenderer> tmp(new DrmRenderer(m_vaDisplay, m_fd, m_displayIdx));
+        SharedPtr<DrmRenderer> tmp(new DrmRenderer(m_vaDisplay, m_fd, m_displayIdx, m_10bits));
         if (!tmp->init()) {
             ERROR("init drm renderer failed");
             return false;
@@ -723,7 +759,7 @@ private:
                         goto DONE;
                     }
                     dest->crop.x = j * width;
-                    dest->crop.y = i * height;
+                    dest->crop.y = ((i * height) & ~31);
                     dest->crop.width = width;
                     dest->crop.height = height;
                     m_vpp->process(frame, dest);
@@ -744,8 +780,7 @@ DONE:
     {
         char opt;
         optind = 0;
-        while ((opt = getopt(argc, argv, "c:r:d:s")) != -1)
-        {
+        while ((opt = getopt(argc, argv, "c:r:d:st")) != -1) {
             switch (opt) {
                 case 'c':
                     m_col = atoi(optarg);
@@ -758,6 +793,9 @@ DONE:
                     break;
                 case 's':
                     m_singleThread = true;
+                    break;
+                case 't':
+                    m_10bits = true;
                     break;
                 default:
                     return false;
@@ -793,6 +831,7 @@ DONE:
     vector<char*> m_files;
     pthread_t m_vppThread;
     Arg m_arg;
+    bool m_10bits;
 };
 
 class App
