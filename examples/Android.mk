@@ -22,8 +22,10 @@ LOCAL_SHARED_LIBRARIES := \
         libva \
         libva-android \
         libgui \
+        libui \
         libhardware \
         libyami \
 
+LOCAL_PROPRIETARY_MODULE := true
 LOCAL_MODULE := androidplayer
 include $(BUILD_EXECUTABLE)

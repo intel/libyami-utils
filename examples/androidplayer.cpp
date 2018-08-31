@@ -33,10 +33,12 @@
 #include <hardware/gralloc1.h>
 #include <va/va_android.h>
 #include <va/va.h>
+#include <va/va_drmcommon.h>
 #include <map>
 #include <vector>
 
 using namespace YamiMediaCodec;
+using namespace android;
 
 #ifndef CHECK_EQ
 #define CHECK_EQ(a, b) do {                     \
@@ -48,6 +50,18 @@ using namespace YamiMediaCodec;
 
 #define ANDROID_DISPLAY 0x18C34078
 
+typedef int32_t (*GRALLOC1_PFN_SET_INTERLACE)(gralloc1_device_t *device, buffer_handle_t buffer, uint32_t interlace);
+#define GRALLOC1_FUNCTION_SET_INTERLACE 104
+
+typedef int32_t /*gralloc1_error_t*/ (*GRALLOC1_PFN_GET_PRIME)(
+        gralloc1_device_t *device, buffer_handle_t buffer, uint32_t *prime);
+#define GRALLOC1_FUNCTION_GET_PRIME 103
+
+
+typedef int32_t /*gralloc1_error_t*/ (*GRALLOC1_PFN_GET_BYTE_STRIDE)(
+        gralloc1_device_t *device, buffer_handle_t buffer, uint32_t *outStride, uint32_t size);
+#define GRALLOC1_FUNCTION_GET_BYTE_STRIDE 102
+
 class Gralloc1
 {
 public:
@@ -58,9 +72,21 @@ public:
             g.reset();
         return g;
     }
-    bool getPitch(buffer_handle_t handle, uint32_t& pitch)
+
+    bool getByteStride(buffer_handle_t handle, uint32_t *outStride, uint32_t size)
     {
-        return m_getStride(m_device, handle, &pitch) == 0;
+        return m_getByteStride(m_device, handle, outStride, size) == 0;
+    }
+
+    bool getPrime(buffer_handle_t handle, uint32_t* prime)
+    {
+        return m_getPrime(m_device, handle, prime) == 0;
+    }
+
+    bool setInterlace(buffer_handle_t handle, bool interlace)
+    {
+        uint32_t i = interlace;
+        return m_setInterlace(m_device, handle, i) == 0;
     }
 
     ~Gralloc1()
@@ -76,12 +102,16 @@ private:
     {
         CHECK_EQ(0,  hw_get_module(GRALLOC_HARDWARE_MODULE_ID, &m_module));
         CHECK_EQ(0, gralloc1_open(m_module, &m_device));
-        m_getStride =  (GRALLOC1_PFN_GET_STRIDE)m_device->getFunction(m_device, GRALLOC1_FUNCTION_GET_STRIDE);
-        return m_getStride;
+        m_setInterlace = (GRALLOC1_PFN_SET_INTERLACE)m_device->getFunction(m_device, GRALLOC1_FUNCTION_SET_INTERLACE);
+        m_getPrime = (GRALLOC1_PFN_GET_PRIME)m_device->getFunction(m_device, GRALLOC1_FUNCTION_GET_PRIME);
+        m_getByteStride = (GRALLOC1_PFN_GET_BYTE_STRIDE)m_device->getFunction(m_device, GRALLOC1_FUNCTION_GET_BYTE_STRIDE);
+        return m_setInterlace && m_getPrime && m_getByteStride;
     }
     const struct hw_module_t* m_module = NULL;
     gralloc1_device_t* m_device = NULL;
-    GRALLOC1_PFN_GET_STRIDE m_getStride = NULL;
+    GRALLOC1_PFN_SET_INTERLACE m_setInterlace = NULL;
+    GRALLOC1_PFN_GET_PRIME m_getPrime = NULL;
+    GRALLOC1_PFN_GET_BYTE_STRIDE  m_getByteStride = NULL;
 };
 
 class AndroidPlayer
@@ -221,11 +251,11 @@ private:
         static sp<SurfaceControl> surfaceCtl = client->createSurface(String8("testsurface"), 800, 600, HAL_PIXEL_FORMAT_NV12_Y_TILED_INTEL, 0);
 
         // configure surface
-        SurfaceComposerClient::openGlobalTransaction();
-        surfaceCtl->setLayer(100000);
-        surfaceCtl->setPosition(100, 100);
-        surfaceCtl->setSize(1920, 1080);
-        SurfaceComposerClient::closeGlobalTransaction();
+        SurfaceComposerClient::Transaction{}
+             .setLayer(surfaceCtl, 100000)
+             .setPosition(surfaceCtl, 100, 100)
+             .setSize(surfaceCtl, 1920, 1080)
+             .apply();
 
         m_surface = surfaceCtl->getSurface();
 
@@ -268,8 +298,8 @@ private:
     {
         SharedPtr<VideoFrame> frame;
 
-        uint32_t pitch;
-        if (!m_gralloc->getPitch(buf->handle, pitch))
+        uint32_t pitch[2];
+        if (!m_gralloc->getByteStride(buf->handle, pitch, 2))
             return frame;
 
         VASurfaceAttrib attrib;
@@ -281,12 +311,19 @@ private:
         external.pixel_format = VA_FOURCC_NV12;
         external.width = buf->width;
         external.height = buf->height;
-        external.pitches[0] = pitch;
+        external.pitches[0] = pitch[0];
+        external.pitches[1] = pitch[1];
+        external.offsets[0] = 0;
+        external.offsets[1] = pitch[0] * buf->height;
         external.num_planes = 2;
         external.num_buffers = 1;
-        uint8_t* handle = (uint8_t*)buf->handle;
+        uint32_t handle;
+        if (!m_gralloc->getPrime(buf->handle, &handle)) {
+            ERROR("get prime failed");
+            return frame;
+        }
         external.buffers = (long unsigned int*)&handle; //graphic handel
-        external.flags = VA_SURFACE_ATTRIB_MEM_TYPE_ANDROID_GRALLOC;
+        external.flags = VA_SURFACE_ATTRIB_MEM_TYPE_DRM_PRIME;
 
         attrib.flags = VA_SURFACE_ATTRIB_SETTABLE;
         attrib.type = (VASurfaceAttribType)VASurfaceAttribExternalBufferDescriptor;
