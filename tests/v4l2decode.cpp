@@ -81,6 +81,7 @@ bool feedOneInputFrame(const SharedPtr<DecodeInput>& input, const SharedPtr<V4L2
     struct v4l2_plane planes[k_inputPlaneCount];
     int ioctlRet = -1;
 
+    memset(&inputBuffer, 0, sizeof(inputBuffer));
     memset(&buf, 0, sizeof(buf));
     memset(&planes, 0, sizeof(planes));
     buf.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE; // it indicates input buffer(raw frame) type

@@ -72,7 +72,10 @@ bool VppInputDecodeCapi::read(SharedPtr<VideoFrame>& frame)
         }
         if (m_error || m_eos)
             return false;
+
         VideoDecodeBuffer inputBuffer;
+        memset(&inputBuffer, 0, sizeof(inputBuffer));
+
         Decode_Status status = DECODE_FAIL;
         if (m_input->getNextDecodeUnit(inputBuffer)) {
             status = decodeDecode(m_decoder, &inputBuffer);
