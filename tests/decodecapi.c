@@ -40,6 +40,8 @@ int main(int argc, char** argv)
     const VideoFormatInfo *formatInfo = NULL;
     Decode_Status status;
 
+    memset(&inputBuffer, 0, sizeof(inputBuffer));
+
     if (!process_cmdline(argc, argv))
         return -1;
 

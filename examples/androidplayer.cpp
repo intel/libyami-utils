@@ -141,6 +141,8 @@ public:
         assert(status == DECODE_SUCCESS);
 
         VideoDecodeBuffer inputBuffer;
+        memset(&inputBuffer, 0, sizeof(inputBuffer));
+
         while (m_input->getNextDecodeUnit(inputBuffer)) {
             status = m_decoder->decode(&inputBuffer);
             if (DECODE_FORMAT_CHANGE == status) {

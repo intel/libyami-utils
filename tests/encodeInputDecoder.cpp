@@ -64,7 +64,10 @@ bool EncodeInputDecoder::decodeOneFrame()
 {
     if (!m_input || !m_decoder)
         return false;
+
     VideoDecodeBuffer inputBuffer;
+    memset(&inputBuffer, 0, sizeof(inputBuffer));
+
     if (!m_input->getNextDecodeUnit(inputBuffer)) {
         memset(&inputBuffer, 0, sizeof(inputBuffer));
         //flush decoder
