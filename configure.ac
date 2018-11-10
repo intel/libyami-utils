@@ -254,7 +254,7 @@ if test "$have_bsd" = "yes"; then
    AC_DEFINE(HAVE_LIBBSD, 1, [Define if libbsd is available])
 fi
 
-PKG_CHECK_MODULES([LIBYAMI], [libyami >= 0.5.5])
+PKG_CHECK_MODULES([LIBYAMI], [libyami >= 0.6.1])
 
 # Checks for library functions.
 AC_FUNC_MALLOC
