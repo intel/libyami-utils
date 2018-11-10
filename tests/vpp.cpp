@@ -254,10 +254,13 @@ private:
             VPPDeinterlaceParameters deinterlace;
             memset(&deinterlace, 0, sizeof(deinterlace));
             deinterlace.size = sizeof(deinterlace);
-            if (strcasecmp(m_deinterlaceMode, "bob") == 0) {
+            if (!strcasecmp(m_deinterlaceMode, "bob")) {
                 deinterlace.mode = DEINTERLACE_MODE_BOB;
-            }
-            else {
+            } else if (!strcasecmp(m_deinterlaceMode, "motion_adaptive")) {
+                deinterlace.mode = DEINTERLACE_MODE_MOTION_ADAPTIVE;
+            } else if (!strcasecmp(m_deinterlaceMode, "motion_compensated")) {
+                deinterlace.mode = DEINTERLACE_MODE_MOTION_COMPENSATED;
+            } else {
                 ERROR("wrong mode deinterlace mode %s", m_deinterlaceMode);
                 return false;
             }
@@ -323,7 +326,7 @@ void usage()
     printf("usage: yamivpp <option> input_1920x1080.i420 output_320x240.yv12\n");
     printf("       -s <level> optional, sharpening level\n");
     printf("       --dn <level> optional, denoise level\n");
-    printf("       --di <mode>, optional, deinterlace mode, only support bob\n");
+    printf("       --di <mode>, optional, deinterlace mode, support bob, motion_adaptive and motion_compensated\n");
     printf("       --hue <level>, optional, hue level, range [0, 100] or -1, -1: delete this filter\n");
     printf("       --sat <level>, optional, saturation level, range [0, 100] or -1, -1: delete this filter\n");
     printf("       --br <level>, optional, brightness level, range [0, 100] or -1, -1: delete this filter\n");
