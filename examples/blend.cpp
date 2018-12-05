@@ -404,9 +404,9 @@ private:
             uint8_t r = rand() % 256;
             uint8_t g = rand() % 256;
             uint8_t b = rand() % 256;
-            uint8_t a = rand() % 256;
+            uint8_t a = (rand() % 128) + 128; //low alpha value will introduce trasparent block
 
-            uint32_t pixel = (r << 24) | (g << 16) | (b << 8) | a;
+            uint32_t pixel = (a << 24) | (b << 16) | (g << 8) | r;
             char* ptr = buf + image.offsets[0];
             for (int i = 0; i < image.height; i++) {
                 uint32_t* dest = (uint32_t*)(ptr + image.pitches[0] * i);
