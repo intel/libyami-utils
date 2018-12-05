@@ -35,8 +35,8 @@
 #include <va/va_x11.h>
 
 struct timespec start, end;
-#define PERF_START(block) clock_gettime(CLOCK_REALTIME, &start);
-#define PERF_STOP(block) clock_gettime(CLOCK_REALTIME, &end);     \
+#define PERF_START(block) clock_gettime(CLOCK_REALTIME, &::start);
+#define PERF_STOP(block) clock_gettime(CLOCK_REALTIME, &::end);   \
                          INFO("%s used %f ms\n", block,           \
                              (end.tv_sec - start.tv_sec) * 1000   \
                            + (end.tv_nsec - start.tv_nsec) / 1E6);
@@ -490,14 +490,14 @@ private:
     {
         m_dest = createSurface(VA_RT_FORMAT_YUV420, VA_FOURCC_NV12, targetWidth, targetHeight);
         m_dest->fourcc = YAMI_FOURCC_NV12; 
-        return m_dest;
+        return (bool)m_dest;
     }
 
     bool createDisplaySurface(uint32_t targetWidth, uint32_t targetHeight)
     {
         m_displaySurface = createSurface(VA_RT_FORMAT_YUV420, VA_FOURCC_NV12, targetWidth, targetHeight);
         m_displaySurface->fourcc = YAMI_FOURCC_NV12;
-        return m_displaySurface;
+        return (bool)m_displaySurface;
     }
 
     bool createVpp()
