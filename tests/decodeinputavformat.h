@@ -47,7 +47,7 @@ private:
     AVFormatContext* m_format;
     int m_videoId;
     AVCodecID m_codecId;
-    AVPacket m_packet;
+    AVPacket* m_packet;
     bool m_isEos;
     string m_codecData;
 };
