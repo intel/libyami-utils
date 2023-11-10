@@ -22,18 +22,12 @@
 #include "common/log.h"
 #include <Yami.h>
 
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(55, 39, 100)
-#define av_packet_unref av_free_packet
-#endif
-
 DecodeInputAvFormat::DecodeInputAvFormat()
-:m_format(NULL),m_videoId(-1), m_codecId(AV_CODEC_ID_NONE), m_isEos(true)
+:m_format(NULL),m_videoId(-1), m_codecId(AV_CODEC_ID_NONE), m_packet(av_packet_alloc()), m_isEos(true)
 {
 #if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(58, 9, 100)
     av_register_all();
 #endif
-
-    av_init_packet(&m_packet);
 }
 
 bool DecodeInputAvFormat::initInput(const char* fileName)
@@ -132,18 +126,19 @@ bool DecodeInputAvFormat::getNextDecodeUnit(VideoDecodeBuffer &inputBuffer)
     int ret;
     while (1) {
         //free old packet
-        av_packet_unref(&m_packet);
+        av_packet_free(&m_packet);
+        m_packet = av_packet_alloc();
 
-        ret = av_read_frame(m_format, &m_packet);
+        ret = av_read_frame(m_format, m_packet);
         if (ret) {
             m_isEos = true;
             return false;
         }
-        if (m_packet.stream_index == m_videoId) {
+        if (m_packet->stream_index == m_videoId) {
             memset(&inputBuffer, 0, sizeof(inputBuffer));
-            inputBuffer.data = m_packet.data;
-            inputBuffer.size = m_packet.size;
-            inputBuffer.timeStamp = m_packet.dts;
+            inputBuffer.data = m_packet->data;
+            inputBuffer.size = m_packet->size;
+            inputBuffer.timeStamp = m_packet->dts;
             inputBuffer.flag = VIDEO_DECODE_BUFFER_FLAG_FRAME_END;
             return true;
         }
@@ -159,8 +154,8 @@ const string& DecodeInputAvFormat::getCodecData()
 DecodeInputAvFormat::~DecodeInputAvFormat()
 {
     if (m_format) {
-        av_packet_unref(&m_packet);
         avformat_close_input(&m_format);
     }
+    av_packet_free(&m_packet);
 
 }
